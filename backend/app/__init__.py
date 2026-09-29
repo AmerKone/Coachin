@@ -1,0 +1,1 @@
+"""Coachin backend application package."""
