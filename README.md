@@ -43,6 +43,7 @@ pip install -r backend/requirements.txt
 pip install -r frontend/requirements.txt
 
 python scripts/init_db.py          # create tables
+python scripts/seed_exercises.py   # load the exercise library
 uvicorn app.main:app --reload --app-dir backend
 streamlit run frontend/app.py
 ```

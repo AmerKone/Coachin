@@ -1,0 +1,952 @@
+[
+  {
+    "name": "Barbell Bench Press",
+    "primary_muscle": "chest",
+    "secondary_muscles": ["triceps", "shoulders"],
+    "category": "compound",
+    "equipment": ["barbell", "bench"],
+    "instructions": "Lie on the bench, grip the bar slightly wider than shoulders, lower it to mid-chest with elbows about 45 degrees from the body, then press back up.",
+    "contraindications": "Use caution with shoulder impingement, rotator cuff or pectoral injuries. Use a spotter or safety arms for heavy sets."
+  },
+  {
+    "name": "Incline Barbell Bench Press",
+    "primary_muscle": "chest",
+    "secondary_muscles": ["shoulders", "triceps"],
+    "category": "compound",
+    "equipment": ["barbell", "bench"],
+    "instructions": "On a bench set to 30-45 degrees, lower the bar to the upper chest and press it back up over the shoulders.",
+    "contraindications": "Use caution with shoulder impingement or rotator cuff injuries."
+  },
+  {
+    "name": "Dumbbell Bench Press",
+    "primary_muscle": "chest",
+    "secondary_muscles": ["triceps", "shoulders"],
+    "category": "compound",
+    "equipment": ["dumbbells", "bench"],
+    "instructions": "Lie on the bench with a dumbbell in each hand at chest level, press them up until the arms are straight, then lower under control.",
+    "contraindications": "Use caution with shoulder or pectoral injuries."
+  },
+  {
+    "name": "Incline Dumbbell Press",
+    "primary_muscle": "chest",
+    "secondary_muscles": ["shoulders", "triceps"],
+    "category": "compound",
+    "equipment": ["dumbbells", "bench"],
+    "instructions": "On a bench inclined to 30-45 degrees, press the dumbbells from upper-chest level to straight arms, then lower slowly.",
+    "contraindications": "Use caution with shoulder impingement."
+  },
+  {
+    "name": "Dumbbell Fly",
+    "primary_muscle": "chest",
+    "secondary_muscles": ["shoulders"],
+    "category": "isolation",
+    "equipment": ["dumbbells", "bench"],
+    "instructions": "Lying on a bench with a slight bend in the elbows, open the arms in a wide arc until you feel a chest stretch, then bring the dumbbells back together.",
+    "contraindications": "Avoid deep stretching with shoulder instability or pectoral strain; keep the range comfortable."
+  },
+  {
+    "name": "Push-Up",
+    "primary_muscle": "chest",
+    "secondary_muscles": ["triceps", "shoulders", "core"],
+    "category": "compound",
+    "equipment": [],
+    "is_bodyweight": true,
+    "instructions": "From a plank with hands slightly wider than shoulders, lower your chest toward the floor keeping the body in a straight line, then push back up.",
+    "contraindications": "Use caution with wrist or shoulder pain; push-ups on fists or handles can reduce wrist strain."
+  },
+  {
+    "name": "Incline Push-Up",
+    "primary_muscle": "chest",
+    "secondary_muscles": ["triceps", "shoulders"],
+    "category": "compound",
+    "equipment": [],
+    "is_bodyweight": true,
+    "instructions": "Place hands on a sturdy raised surface such as a table or bench and perform a push-up; the higher the surface, the easier it is.",
+    "contraindications": "Use caution with wrist or shoulder pain."
+  },
+  {
+    "name": "Cable Crossover",
+    "primary_muscle": "chest",
+    "secondary_muscles": ["shoulders"],
+    "category": "isolation",
+    "equipment": ["cable machine"],
+    "instructions": "Standing between two high pulleys, bring the handles down and together in front of your chest with slightly bent elbows, then return slowly.",
+    "contraindications": "Use caution with shoulder instability."
+  },
+  {
+    "name": "Chest Dip",
+    "primary_muscle": "chest",
+    "secondary_muscles": ["triceps", "shoulders"],
+    "category": "compound",
+    "equipment": ["dip bars"],
+    "is_bodyweight": true,
+    "instructions": "Support yourself on the bars, lean the torso forward slightly, lower until the upper arms are about parallel to the floor, then press back up.",
+    "contraindications": "Avoid with shoulder impingement, anterior shoulder instability, or sternum/AC joint pain."
+  },
+  {
+    "name": "Machine Chest Press",
+    "primary_muscle": "chest",
+    "secondary_muscles": ["triceps", "shoulders"],
+    "category": "compound",
+    "equipment": ["machines"],
+    "instructions": "Adjust the seat so the handles are at mid-chest, press forward until the arms are extended, then return under control.",
+    "contraindications": "Use caution with shoulder injuries."
+  },
+  {
+    "name": "Resistance Band Chest Press",
+    "primary_muscle": "chest",
+    "secondary_muscles": ["triceps", "shoulders"],
+    "category": "compound",
+    "equipment": ["resistance bands"],
+    "instructions": "Anchor the band behind you at chest height, hold the ends at your chest and press forward until the arms are straight, then return slowly.",
+    "contraindications": null
+  },
+  {
+    "name": "Conventional Deadlift",
+    "primary_muscle": "back",
+    "secondary_muscles": ["glutes", "hamstrings", "core"],
+    "category": "compound",
+    "equipment": ["barbell"],
+    "instructions": "With the bar over mid-foot, hinge at the hips and grip it just outside the knees, brace the core with a neutral spine, and stand up by driving through the floor.",
+    "contraindications": "Avoid or modify with acute lower-back injury, disc herniation, or uncontrolled high blood pressure. Learn technique with light loads."
+  },
+  {
+    "name": "Romanian Deadlift",
+    "primary_muscle": "hamstrings",
+    "secondary_muscles": ["glutes", "back"],
+    "category": "compound",
+    "equipment": ["barbell"],
+    "instructions": "Holding the bar at hip height with soft knees, push the hips back and lower the bar along the legs until you feel a hamstring stretch, then drive the hips forward to stand.",
+    "contraindications": "Use caution with lower-back injury or hamstring strain; keep the spine neutral."
+  },
+  {
+    "name": "Dumbbell Romanian Deadlift",
+    "primary_muscle": "hamstrings",
+    "secondary_muscles": ["glutes", "back"],
+    "category": "compound",
+    "equipment": ["dumbbells"],
+    "instructions": "Holding dumbbells in front of the thighs, hinge at the hips with soft knees until you feel a hamstring stretch, then return to standing.",
+    "contraindications": "Use caution with lower-back injury or hamstring strain."
+  },
+  {
+    "name": "Pull-Up",
+    "primary_muscle": "back",
+    "secondary_muscles": ["biceps", "shoulders"],
+    "category": "compound",
+    "equipment": ["pull-up bar"],
+    "is_bodyweight": true,
+    "instructions": "Hang from the bar with an overhand grip slightly wider than shoulders, pull until your chin clears the bar, then lower to a full hang.",
+    "contraindications": "Use caution with shoulder impingement, elbow tendinopathy, or recent shoulder surgery."
+  },
+  {
+    "name": "Chin-Up",
+    "primary_muscle": "back",
+    "secondary_muscles": ["biceps"],
+    "category": "compound",
+    "equipment": ["pull-up bar"],
+    "is_bodyweight": true,
+    "instructions": "Hang with an underhand, shoulder-width grip, pull your chin above the bar, then lower slowly.",
+    "contraindications": "Use caution with elbow or wrist pain."
+  },
+  {
+    "name": "Band-Assisted Pull-Up",
+    "primary_muscle": "back",
+    "secondary_muscles": ["biceps", "shoulders"],
+    "category": "compound",
+    "equipment": ["pull-up bar", "resistance bands"],
+    "is_bodyweight": true,
+    "instructions": "Loop a band over the bar and place a foot or knee in it for assistance, then perform a pull-up. Use a lighter band as you get stronger.",
+    "contraindications": "Use caution with shoulder impingement."
+  },
+  {
+    "name": "Lat Pulldown",
+    "primary_muscle": "back",
+    "secondary_muscles": ["biceps", "shoulders"],
+    "category": "compound",
+    "equipment": ["cable machine"],
+    "instructions": "Seated with thighs secured, pull the bar down to the upper chest while squeezing the shoulder blades down and back, then let it rise under control.",
+    "contraindications": "Avoid pulling behind the neck; use caution with shoulder impingement."
+  },
+  {
+    "name": "Barbell Bent-Over Row",
+    "primary_muscle": "back",
+    "secondary_muscles": ["biceps", "shoulders", "core"],
+    "category": "compound",
+    "equipment": ["barbell"],
+    "instructions": "Hinge forward to about 45 degrees with a neutral spine, pull the bar to the lower ribs, then lower it with control.",
+    "contraindications": "Use caution with lower-back injury; a chest-supported row is a safer alternative."
+  },
+  {
+    "name": "One-Arm Dumbbell Row",
+    "primary_muscle": "back",
+    "secondary_muscles": ["biceps", "shoulders"],
+    "category": "compound",
+    "equipment": ["dumbbells", "bench"],
+    "instructions": "With one hand and knee on the bench and a flat back, pull the dumbbell toward your hip, then lower it fully.",
+    "contraindications": null
+  },
+  {
+    "name": "Chest-Supported Dumbbell Row",
+    "primary_muscle": "back",
+    "secondary_muscles": ["biceps", "shoulders"],
+    "category": "compound",
+    "equipment": ["dumbbells", "bench"],
+    "instructions": "Lie face down on an incline bench and row the dumbbells toward your hips, squeezing the shoulder blades together.",
+    "contraindications": null
+  },
+  {
+    "name": "Seated Cable Row",
+    "primary_muscle": "back",
+    "secondary_muscles": ["biceps", "shoulders"],
+    "category": "compound",
+    "equipment": ["cable machine"],
+    "instructions": "Sit tall with feet braced, pull the handle to your lower ribs while squeezing the shoulder blades, then extend the arms without rounding the back.",
+    "contraindications": "Use caution with lower-back pain; keep the torso upright."
+  },
+  {
+    "name": "Inverted Row",
+    "primary_muscle": "back",
+    "secondary_muscles": ["biceps", "core"],
+    "category": "compound",
+    "equipment": ["barbell", "squat rack"],
+    "is_bodyweight": true,
+    "instructions": "Hang under a bar set at waist height with a straight body, pull your chest to the bar, then lower. Bend the knees to make it easier.",
+    "contraindications": null
+  },
+  {
+    "name": "Resistance Band Row",
+    "primary_muscle": "back",
+    "secondary_muscles": ["biceps"],
+    "category": "compound",
+    "equipment": ["resistance bands"],
+    "instructions": "Anchor the band in front of you at chest height, pull the handles toward your ribs squeezing the shoulder blades, then return slowly.",
+    "contraindications": null
+  },
+  {
+    "name": "Superman Hold",
+    "primary_muscle": "back",
+    "secondary_muscles": ["glutes"],
+    "category": "isolation",
+    "equipment": [],
+    "is_bodyweight": true,
+    "instructions": "Lie face down and lift the arms, chest and legs slightly off the floor, hold for a few seconds, then lower.",
+    "contraindications": "Avoid with spondylolisthesis or pain on spinal extension."
+  },
+  {
+    "name": "Face Pull",
+    "primary_muscle": "shoulders",
+    "secondary_muscles": ["back"],
+    "category": "isolation",
+    "equipment": ["cable machine"],
+    "instructions": "With a rope at upper-chest height, pull toward your face while separating the hands and rotating the arms outward, then return slowly.",
+    "contraindications": null
+  },
+  {
+    "name": "Standing Barbell Overhead Press",
+    "primary_muscle": "shoulders",
+    "secondary_muscles": ["triceps", "core"],
+    "category": "compound",
+    "equipment": ["barbell"],
+    "instructions": "Standing with the bar at the collarbone, brace the core and glutes, press the bar straight overhead, then lower it to the start.",
+    "contraindications": "Avoid with shoulder impingement or limited overhead mobility; use caution with lower-back pain."
+  },
+  {
+    "name": "Seated Dumbbell Shoulder Press",
+    "primary_muscle": "shoulders",
+    "secondary_muscles": ["triceps"],
+    "category": "compound",
+    "equipment": ["dumbbells", "bench"],
+    "instructions": "Seated with back support and dumbbells at shoulder height, press overhead until the arms are straight, then lower under control.",
+    "contraindications": "Use caution with shoulder impingement."
+  },
+  {
+    "name": "Arnold Press",
+    "primary_muscle": "shoulders",
+    "secondary_muscles": ["triceps"],
+    "category": "compound",
+    "equipment": ["dumbbells"],
+    "instructions": "Start with dumbbells at chin height and palms facing you, rotate the palms outward as you press overhead, then reverse on the way down.",
+    "contraindications": "Avoid with shoulder impingement or rotator cuff injury."
+  },
+  {
+    "name": "Machine Shoulder Press",
+    "primary_muscle": "shoulders",
+    "secondary_muscles": ["triceps"],
+    "category": "compound",
+    "equipment": ["machines"],
+    "instructions": "Adjust the seat so the handles are at shoulder height, press upward to full extension, then return slowly.",
+    "contraindications": "Use caution with shoulder impingement."
+  },
+  {
+    "name": "Dumbbell Lateral Raise",
+    "primary_muscle": "shoulders",
+    "secondary_muscles": [],
+    "category": "isolation",
+    "equipment": ["dumbbells"],
+    "instructions": "With a slight bend in the elbows, raise the dumbbells out to the sides to shoulder height, then lower slowly.",
+    "contraindications": "Use light weights and stop below shoulder height if you have impingement."
+  },
+  {
+    "name": "Cable Lateral Raise",
+    "primary_muscle": "shoulders",
+    "secondary_muscles": [],
+    "category": "isolation",
+    "equipment": ["cable machine"],
+    "instructions": "Standing side-on to a low pulley, raise the handle out to the side to shoulder height, then lower under control.",
+    "contraindications": null
+  },
+  {
+    "name": "Rear Delt Dumbbell Fly",
+    "primary_muscle": "shoulders",
+    "secondary_muscles": ["back"],
+    "category": "isolation",
+    "equipment": ["dumbbells"],
+    "instructions": "Hinge forward with a flat back and raise the dumbbells out to the sides, squeezing the shoulder blades, then lower slowly.",
+    "contraindications": "Use caution with lower-back pain; support the chest on an incline bench if needed."
+  },
+  {
+    "name": "Band Pull-Apart",
+    "primary_muscle": "shoulders",
+    "secondary_muscles": ["back"],
+    "category": "isolation",
+    "equipment": ["resistance bands"],
+    "instructions": "Hold a band at shoulder height with straight arms and pull it apart until it touches your chest, then return slowly.",
+    "contraindications": null
+  },
+  {
+    "name": "Pike Push-Up",
+    "primary_muscle": "shoulders",
+    "secondary_muscles": ["triceps"],
+    "category": "compound",
+    "equipment": [],
+    "is_bodyweight": true,
+    "instructions": "From an inverted V position with hips high, bend the elbows to lower the top of your head toward the floor, then press back up.",
+    "contraindications": "Avoid with shoulder impingement, uncontrolled high blood pressure, or glaucoma (head-down position)."
+  },
+  {
+    "name": "Barbell Curl",
+    "primary_muscle": "biceps",
+    "secondary_muscles": [],
+    "category": "isolation",
+    "equipment": ["barbell"],
+    "instructions": "Standing with an underhand grip, curl the bar toward your shoulders keeping the elbows at your sides, then lower fully.",
+    "contraindications": "Use caution with elbow or wrist pain; an EZ bar may be more comfortable."
+  },
+  {
+    "name": "Dumbbell Curl",
+    "primary_muscle": "biceps",
+    "secondary_muscles": [],
+    "category": "isolation",
+    "equipment": ["dumbbells"],
+    "instructions": "Curl the dumbbells toward your shoulders, turning the palms up as you lift, then lower slowly.",
+    "contraindications": null
+  },
+  {
+    "name": "Hammer Curl",
+    "primary_muscle": "biceps",
+    "secondary_muscles": [],
+    "category": "isolation",
+    "equipment": ["dumbbells"],
+    "instructions": "With palms facing each other, curl the dumbbells toward your shoulders, then lower under control.",
+    "contraindications": null
+  },
+  {
+    "name": "Incline Dumbbell Curl",
+    "primary_muscle": "biceps",
+    "secondary_muscles": [],
+    "category": "isolation",
+    "equipment": ["dumbbells", "bench"],
+    "instructions": "Sitting back on an incline bench with arms hanging, curl the dumbbells up without moving the upper arms, then lower fully.",
+    "contraindications": "Use caution with anterior shoulder pain due to the stretched position."
+  },
+  {
+    "name": "Cable Curl",
+    "primary_muscle": "biceps",
+    "secondary_muscles": [],
+    "category": "isolation",
+    "equipment": ["cable machine"],
+    "instructions": "Facing a low pulley, curl the bar or handle toward your shoulders with elbows fixed, then lower slowly.",
+    "contraindications": null
+  },
+  {
+    "name": "Resistance Band Curl",
+    "primary_muscle": "biceps",
+    "secondary_muscles": [],
+    "category": "isolation",
+    "equipment": ["resistance bands"],
+    "instructions": "Stand on the band and curl the handles toward your shoulders, keeping elbows at your sides.",
+    "contraindications": null
+  },
+  {
+    "name": "Close-Grip Bench Press",
+    "primary_muscle": "triceps",
+    "secondary_muscles": ["chest", "shoulders"],
+    "category": "compound",
+    "equipment": ["barbell", "bench"],
+    "instructions": "With hands about shoulder-width apart, lower the bar to the lower chest keeping the elbows close to the body, then press up.",
+    "contraindications": "Use caution with wrist or shoulder pain."
+  },
+  {
+    "name": "Triceps Pushdown",
+    "primary_muscle": "triceps",
+    "secondary_muscles": [],
+    "category": "isolation",
+    "equipment": ["cable machine"],
+    "instructions": "Facing a high pulley with elbows at your sides, push the bar or rope down until the arms are straight, then return slowly.",
+    "contraindications": null
+  },
+  {
+    "name": "Overhead Dumbbell Triceps Extension",
+    "primary_muscle": "triceps",
+    "secondary_muscles": [],
+    "category": "isolation",
+    "equipment": ["dumbbells"],
+    "instructions": "Holding one dumbbell overhead with both hands, lower it behind your head by bending the elbows, then extend back up.",
+    "contraindications": "Use caution with elbow pain or limited shoulder mobility."
+  },
+  {
+    "name": "Skull Crusher",
+    "primary_muscle": "triceps",
+    "secondary_muscles": [],
+    "category": "isolation",
+    "equipment": ["barbell", "bench"],
+    "instructions": "Lying on a bench with the bar above your chest, bend the elbows to lower it toward your forehead, then extend the arms.",
+    "contraindications": "Avoid with elbow tendinopathy; use controlled, moderate loads."
+  },
+  {
+    "name": "Bench Dip",
+    "primary_muscle": "triceps",
+    "secondary_muscles": ["chest", "shoulders"],
+    "category": "compound",
+    "equipment": ["bench"],
+    "is_bodyweight": true,
+    "instructions": "With hands on the edge of a bench behind you and legs extended, bend the elbows to lower your hips, then press back up.",
+    "contraindications": "Avoid with shoulder impingement or anterior shoulder pain."
+  },
+  {
+    "name": "Diamond Push-Up",
+    "primary_muscle": "triceps",
+    "secondary_muscles": ["chest", "shoulders"],
+    "category": "compound",
+    "equipment": [],
+    "is_bodyweight": true,
+    "instructions": "Perform a push-up with hands close together under the chest, thumbs and index fingers forming a diamond.",
+    "contraindications": "Use caution with wrist or elbow pain."
+  },
+  {
+    "name": "Resistance Band Triceps Extension",
+    "primary_muscle": "triceps",
+    "secondary_muscles": [],
+    "category": "isolation",
+    "equipment": ["resistance bands"],
+    "instructions": "Anchor the band high, keep the elbows at your sides and push the band down until the arms are straight.",
+    "contraindications": null
+  },
+  {
+    "name": "Barbell Back Squat",
+    "primary_muscle": "quadriceps",
+    "secondary_muscles": ["glutes", "hamstrings", "core"],
+    "category": "compound",
+    "equipment": ["barbell", "squat rack"],
+    "instructions": "With the bar on your upper back, brace the core, sit down between your hips until the thighs are at least parallel, then drive back up.",
+    "contraindications": "Use caution with knee or lower-back injuries; use safety pins or a spotter for heavy sets."
+  },
+  {
+    "name": "Front Squat",
+    "primary_muscle": "quadriceps",
+    "secondary_muscles": ["glutes", "core"],
+    "category": "compound",
+    "equipment": ["barbell", "squat rack"],
+    "instructions": "With the bar resting on the front of the shoulders and elbows high, squat down keeping the torso upright, then stand up.",
+    "contraindications": "Use caution with knee injuries or limited wrist mobility."
+  },
+  {
+    "name": "Goblet Squat",
+    "primary_muscle": "quadriceps",
+    "secondary_muscles": ["glutes", "core"],
+    "category": "compound",
+    "equipment": ["dumbbells"],
+    "instructions": "Hold a dumbbell vertically against your chest, squat down between your knees with an upright torso, then stand up.",
+    "contraindications": "Use caution with knee pain; limit depth to a pain-free range."
+  },
+  {
+    "name": "Bodyweight Squat",
+    "primary_muscle": "quadriceps",
+    "secondary_muscles": ["glutes"],
+    "category": "compound",
+    "equipment": [],
+    "is_bodyweight": true,
+    "instructions": "With feet shoulder-width apart and arms forward for balance, sit the hips back and down, then stand up.",
+    "contraindications": "Use caution with knee pain; squat to a chair to limit depth if needed."
+  },
+  {
+    "name": "Bulgarian Split Squat",
+    "primary_muscle": "quadriceps",
+    "secondary_muscles": ["glutes", "hamstrings"],
+    "category": "compound",
+    "equipment": ["dumbbells", "bench"],
+    "instructions": "With your rear foot on a bench behind you, lower the back knee toward the floor, then drive up through the front foot.",
+    "contraindications": "Use caution with knee pain or poor balance."
+  },
+  {
+    "name": "Dumbbell Walking Lunge",
+    "primary_muscle": "quadriceps",
+    "secondary_muscles": ["glutes", "hamstrings"],
+    "category": "compound",
+    "equipment": ["dumbbells"],
+    "instructions": "Holding dumbbells at your sides, step forward and lower the back knee toward the floor, then step through into the next lunge.",
+    "contraindications": "Use caution with knee pain or balance problems."
+  },
+  {
+    "name": "Reverse Lunge",
+    "primary_muscle": "quadriceps",
+    "secondary_muscles": ["glutes", "hamstrings"],
+    "category": "compound",
+    "equipment": [],
+    "is_bodyweight": true,
+    "instructions": "Step one foot back and lower the back knee toward the floor, then push through the front foot to return.",
+    "contraindications": "Use caution with knee pain; usually easier on the knees than forward lunges."
+  },
+  {
+    "name": "Leg Press",
+    "primary_muscle": "quadriceps",
+    "secondary_muscles": ["glutes", "hamstrings"],
+    "category": "compound",
+    "equipment": ["machines"],
+    "instructions": "With feet shoulder-width on the platform, lower it until the knees reach about 90 degrees, then press back without locking the knees.",
+    "contraindications": "Use caution with knee or lower-back injuries; don't let the lower back lift off the seat."
+  },
+  {
+    "name": "Leg Extension",
+    "primary_muscle": "quadriceps",
+    "secondary_muscles": [],
+    "category": "isolation",
+    "equipment": ["machines"],
+    "instructions": "Seated with the pad on your lower shins, extend the knees to straighten the legs, then lower under control.",
+    "contraindications": "Use caution with patellofemoral pain or after ACL reconstruction without clinician approval."
+  },
+  {
+    "name": "Dumbbell Step-Up",
+    "primary_muscle": "quadriceps",
+    "secondary_muscles": ["glutes"],
+    "category": "compound",
+    "equipment": ["dumbbells", "bench"],
+    "instructions": "Holding dumbbells, step one foot onto a bench and drive through it to stand up fully, then step down with control.",
+    "contraindications": "Use caution with knee pain or balance problems."
+  },
+  {
+    "name": "Wall Sit",
+    "primary_muscle": "quadriceps",
+    "secondary_muscles": ["glutes"],
+    "category": "isolation",
+    "equipment": [],
+    "is_bodyweight": true,
+    "instructions": "With your back against a wall, slide down until the knees are about 90 degrees and hold the position.",
+    "contraindications": "Use caution with knee pain; isometric holds raise blood pressure, so avoid with uncontrolled hypertension."
+  },
+  {
+    "name": "Jump Squat",
+    "primary_muscle": "quadriceps",
+    "secondary_muscles": ["glutes", "calves"],
+    "category": "compound",
+    "equipment": [],
+    "is_bodyweight": true,
+    "instructions": "Squat down, then jump explosively and land softly with bent knees, going straight into the next rep.",
+    "contraindications": "Avoid with knee, ankle or back injuries, pregnancy, or pelvic floor issues. Not suitable for beginners without a strength base."
+  },
+  {
+    "name": "Lying Leg Curl",
+    "primary_muscle": "hamstrings",
+    "secondary_muscles": ["calves"],
+    "category": "isolation",
+    "equipment": ["machines"],
+    "instructions": "Lying face down with the pad above your heels, curl your heels toward your glutes, then lower slowly.",
+    "contraindications": "Use caution with a recent hamstring strain."
+  },
+  {
+    "name": "Nordic Hamstring Curl",
+    "primary_muscle": "hamstrings",
+    "secondary_muscles": [],
+    "category": "isolation",
+    "equipment": [],
+    "is_bodyweight": true,
+    "instructions": "Kneeling with your ankles anchored, lower your body forward as slowly as possible using the hamstrings, catch yourself with your hands, and push back up.",
+    "contraindications": "Avoid with a recent hamstring strain or knee pain. Very demanding; start with small ranges."
+  },
+  {
+    "name": "Good Morning",
+    "primary_muscle": "hamstrings",
+    "secondary_muscles": ["back", "glutes"],
+    "category": "compound",
+    "equipment": ["barbell", "squat rack"],
+    "instructions": "With a light bar on your upper back and soft knees, hinge forward at the hips with a neutral spine, then return to standing.",
+    "contraindications": "Avoid with lower-back injury or disc problems; use light loads."
+  },
+  {
+    "name": "Single-Leg Romanian Deadlift",
+    "primary_muscle": "hamstrings",
+    "secondary_muscles": ["glutes", "core"],
+    "category": "compound",
+    "equipment": ["dumbbells"],
+    "instructions": "Holding a dumbbell, hinge forward on one leg while the other extends behind you, keeping the hips square, then return to standing.",
+    "contraindications": "Use caution with balance problems or ankle instability."
+  },
+  {
+    "name": "Barbell Hip Thrust",
+    "primary_muscle": "glutes",
+    "secondary_muscles": ["hamstrings"],
+    "category": "compound",
+    "equipment": ["barbell", "bench"],
+    "instructions": "With your upper back against a bench and a padded bar over your hips, drive the hips up until the body is straight from shoulders to knees, then lower.",
+    "contraindications": "Use caution with lower-back pain; don't overextend at the top."
+  },
+  {
+    "name": "Glute Bridge",
+    "primary_muscle": "glutes",
+    "secondary_muscles": ["hamstrings"],
+    "category": "isolation",
+    "equipment": [],
+    "is_bodyweight": true,
+    "instructions": "Lying on your back with knees bent, squeeze the glutes to lift the hips until the body is straight from shoulders to knees, then lower.",
+    "contraindications": null
+  },
+  {
+    "name": "Single-Leg Glute Bridge",
+    "primary_muscle": "glutes",
+    "secondary_muscles": ["hamstrings", "core"],
+    "category": "isolation",
+    "equipment": [],
+    "is_bodyweight": true,
+    "instructions": "Perform a glute bridge with one leg extended in the air, keeping the hips level.",
+    "contraindications": null
+  },
+  {
+    "name": "Kettlebell Swing",
+    "primary_muscle": "glutes",
+    "secondary_muscles": ["hamstrings", "back", "core"],
+    "category": "compound",
+    "equipment": ["kettlebells"],
+    "instructions": "Hinge at the hips to swing the kettlebell back between your legs, then snap the hips forward to swing it to chest height.",
+    "contraindications": "Avoid with acute lower-back injury; learn the hip hinge first."
+  },
+  {
+    "name": "Cable Pull-Through",
+    "primary_muscle": "glutes",
+    "secondary_muscles": ["hamstrings"],
+    "category": "compound",
+    "equipment": ["cable machine"],
+    "instructions": "Facing away from a low pulley with the rope between your legs, hinge at the hips, then drive them forward to stand tall.",
+    "contraindications": null
+  },
+  {
+    "name": "Banded Lateral Walk",
+    "primary_muscle": "glutes",
+    "secondary_muscles": [],
+    "category": "isolation",
+    "equipment": ["resistance bands"],
+    "instructions": "With a mini band around your knees or ankles and a slight squat, step sideways keeping tension on the band.",
+    "contraindications": null
+  },
+  {
+    "name": "Sumo Deadlift",
+    "primary_muscle": "glutes",
+    "secondary_muscles": ["quadriceps", "hamstrings", "back"],
+    "category": "compound",
+    "equipment": ["barbell"],
+    "instructions": "With a wide stance and toes out, grip the bar inside the knees, keep the chest up and stand by pushing the floor apart.",
+    "contraindications": "Use caution with hip impingement, groin strain, or lower-back injury."
+  },
+  {
+    "name": "Standing Calf Raise",
+    "primary_muscle": "calves",
+    "secondary_muscles": [],
+    "category": "isolation",
+    "equipment": [],
+    "is_bodyweight": true,
+    "instructions": "Standing on the edge of a step, lower your heels below the step, then rise up onto your toes as high as possible. Hold dumbbells to add load.",
+    "contraindications": "Use caution with Achilles tendinopathy."
+  },
+  {
+    "name": "Single-Leg Calf Raise",
+    "primary_muscle": "calves",
+    "secondary_muscles": [],
+    "category": "isolation",
+    "equipment": [],
+    "is_bodyweight": true,
+    "instructions": "Standing on one foot on a step, lower the heel and then rise onto your toes, using a wall for balance.",
+    "contraindications": "Use caution with Achilles tendinopathy."
+  },
+  {
+    "name": "Seated Calf Raise",
+    "primary_muscle": "calves",
+    "secondary_muscles": [],
+    "category": "isolation",
+    "equipment": ["machines"],
+    "instructions": "Seated with the pad on your thighs, lower the heels, then push up onto your toes.",
+    "contraindications": null
+  },
+  {
+    "name": "Plank",
+    "primary_muscle": "core",
+    "secondary_muscles": ["shoulders"],
+    "category": "isolation",
+    "equipment": [],
+    "is_bodyweight": true,
+    "instructions": "Hold a straight line from head to heels on your forearms and toes, bracing the abs and glutes without letting the hips sag.",
+    "contraindications": "Use caution with shoulder pain; hold times raise blood pressure, so breathe steadily."
+  },
+  {
+    "name": "Side Plank",
+    "primary_muscle": "core",
+    "secondary_muscles": ["shoulders", "glutes"],
+    "category": "isolation",
+    "equipment": [],
+    "is_bodyweight": true,
+    "instructions": "Lying on your side, prop yourself up on one forearm and lift the hips so the body forms a straight line, then hold.",
+    "contraindications": "Use caution with shoulder pain; bend the knees to make it easier."
+  },
+  {
+    "name": "Dead Bug",
+    "primary_muscle": "core",
+    "secondary_muscles": [],
+    "category": "isolation",
+    "equipment": [],
+    "is_bodyweight": true,
+    "instructions": "Lying on your back with arms up and knees at 90 degrees, slowly extend the opposite arm and leg while keeping the lower back pressed into the floor.",
+    "contraindications": null
+  },
+  {
+    "name": "Bird Dog",
+    "primary_muscle": "core",
+    "secondary_muscles": ["back", "glutes"],
+    "category": "isolation",
+    "equipment": [],
+    "is_bodyweight": true,
+    "instructions": "On hands and knees, extend the opposite arm and leg until level with your body, hold briefly, then switch sides.",
+    "contraindications": null
+  },
+  {
+    "name": "Hanging Knee Raise",
+    "primary_muscle": "core",
+    "secondary_muscles": [],
+    "category": "isolation",
+    "equipment": ["pull-up bar"],
+    "is_bodyweight": true,
+    "instructions": "Hanging from a bar, raise your knees toward your chest without swinging, then lower slowly.",
+    "contraindications": "Use caution with shoulder or grip problems."
+  },
+  {
+    "name": "Hanging Leg Raise",
+    "primary_muscle": "core",
+    "secondary_muscles": [],
+    "category": "isolation",
+    "equipment": ["pull-up bar"],
+    "is_bodyweight": true,
+    "instructions": "Hanging from a bar, raise straight legs to hip height or higher without swinging, then lower under control.",
+    "contraindications": "Use caution with lower-back or shoulder problems."
+  },
+  {
+    "name": "Cable Woodchopper",
+    "primary_muscle": "core",
+    "secondary_muscles": ["shoulders"],
+    "category": "compound",
+    "equipment": ["cable machine"],
+    "instructions": "Standing side-on to a high pulley, pull the handle diagonally across your body to the opposite hip, rotating through the torso.",
+    "contraindications": "Use caution with lower-back pain or disc problems."
+  },
+  {
+    "name": "Band Pallof Press",
+    "primary_muscle": "core",
+    "secondary_muscles": [],
+    "category": "isolation",
+    "equipment": ["resistance bands"],
+    "instructions": "Standing side-on to a band anchored at chest height, press the handle straight out in front of you and resist being pulled sideways, then return.",
+    "contraindications": null
+  },
+  {
+    "name": "Russian Twist",
+    "primary_muscle": "core",
+    "secondary_muscles": [],
+    "category": "isolation",
+    "equipment": [],
+    "is_bodyweight": true,
+    "instructions": "Sitting with knees bent and torso leaned back, rotate your shoulders from side to side.",
+    "contraindications": "Avoid with lower-back injury, disc herniation or osteoporosis (loaded spinal flexion and rotation)."
+  },
+  {
+    "name": "Crunch",
+    "primary_muscle": "core",
+    "secondary_muscles": [],
+    "category": "isolation",
+    "equipment": [],
+    "is_bodyweight": true,
+    "instructions": "Lying on your back with knees bent, curl your shoulders off the floor using the abs, then lower slowly. Don't pull on your neck.",
+    "contraindications": "Avoid with osteoporosis or disc herniation; use caution with neck pain."
+  },
+  {
+    "name": "Mountain Climber",
+    "primary_muscle": "core",
+    "secondary_muscles": ["shoulders", "quadriceps"],
+    "category": "cardio",
+    "equipment": [],
+    "is_bodyweight": true,
+    "instructions": "From a high plank, drive your knees toward your chest one at a time in a running motion, keeping the hips level.",
+    "contraindications": "Use caution with wrist, shoulder or knee pain."
+  },
+  {
+    "name": "Burpee",
+    "primary_muscle": "full_body",
+    "secondary_muscles": ["chest", "quadriceps", "core"],
+    "category": "cardio",
+    "equipment": [],
+    "is_bodyweight": true,
+    "instructions": "Squat down, place your hands on the floor, jump the feet back to a plank, return the feet, and jump up.",
+    "contraindications": "Avoid with knee, wrist, shoulder or back injuries, heart conditions without clearance, or pregnancy."
+  },
+  {
+    "name": "Dumbbell Thruster",
+    "primary_muscle": "full_body",
+    "secondary_muscles": ["quadriceps", "shoulders", "glutes"],
+    "category": "compound",
+    "equipment": ["dumbbells"],
+    "instructions": "Holding dumbbells at shoulder height, squat down, then drive up and use the momentum to press the dumbbells overhead.",
+    "contraindications": "Use caution with shoulder impingement, knee or lower-back pain."
+  },
+  {
+    "name": "Farmer's Carry",
+    "primary_muscle": "full_body",
+    "secondary_muscles": ["core", "back", "shoulders"],
+    "category": "compound",
+    "equipment": ["dumbbells"],
+    "instructions": "Holding heavy dumbbells at your sides, walk with an upright posture and braced core for distance or time.",
+    "contraindications": "Use caution with lower-back pain or grip injuries."
+  },
+  {
+    "name": "Turkish Get-Up",
+    "primary_muscle": "full_body",
+    "secondary_muscles": ["shoulders", "core", "glutes"],
+    "category": "compound",
+    "equipment": ["kettlebells"],
+    "instructions": "Lying down with a kettlebell pressed overhead, stand up step by step while keeping the arm locked and eyes on the bell, then reverse.",
+    "contraindications": "Use caution with shoulder instability; learn with no weight first."
+  },
+  {
+    "name": "Power Clean",
+    "primary_muscle": "full_body",
+    "secondary_muscles": ["back", "glutes", "quadriceps", "shoulders"],
+    "category": "compound",
+    "equipment": ["barbell"],
+    "instructions": "From the floor, pull the bar explosively by extending the hips and knees, then pull yourself under it and catch it on the front of the shoulders.",
+    "contraindications": "Advanced technical lift: needs coaching. Avoid with wrist, shoulder or lower-back injuries."
+  },
+  {
+    "name": "Treadmill Running",
+    "primary_muscle": "cardio",
+    "secondary_muscles": ["quadriceps", "calves"],
+    "category": "cardio",
+    "equipment": ["cardio machine"],
+    "instructions": "Run at a steady or interval pace; use a slight incline (1%) to mimic outdoor running.",
+    "contraindications": "Use caution with knee, hip or ankle injuries; heart conditions require medical clearance for vigorous cardio."
+  },
+  {
+    "name": "Stationary Cycling",
+    "primary_muscle": "cardio",
+    "secondary_muscles": ["quadriceps"],
+    "category": "cardio",
+    "equipment": ["cardio machine"],
+    "instructions": "Adjust the seat so the knee is slightly bent at the bottom of the pedal stroke and ride at a steady or interval pace.",
+    "contraindications": "Low impact and usually joint-friendly; heart conditions require medical clearance for vigorous intervals."
+  },
+  {
+    "name": "Rowing Machine",
+    "primary_muscle": "cardio",
+    "secondary_muscles": ["back", "quadriceps"],
+    "category": "cardio",
+    "equipment": ["cardio machine"],
+    "instructions": "Drive with the legs first, then lean back slightly and pull the handle to your lower ribs; reverse the order on the return.",
+    "contraindications": "Use caution with lower-back pain; keep the spine neutral."
+  },
+  {
+    "name": "Brisk Walking",
+    "primary_muscle": "cardio",
+    "secondary_muscles": [],
+    "category": "cardio",
+    "equipment": [],
+    "instructions": "Walk at a pace where you can talk but not sing, for 20-60 minutes.",
+    "contraindications": null
+  },
+  {
+    "name": "Jumping Jacks",
+    "primary_muscle": "cardio",
+    "secondary_muscles": ["calves", "shoulders"],
+    "category": "cardio",
+    "equipment": [],
+    "is_bodyweight": true,
+    "instructions": "Jump the feet wide while raising the arms overhead, then jump back to the start. Step instead of jumping for a low-impact version.",
+    "contraindications": "Use the step-out version with knee or ankle pain, pelvic floor issues, or pregnancy."
+  },
+  {
+    "name": "High Knees",
+    "primary_muscle": "cardio",
+    "secondary_muscles": ["quadriceps", "core"],
+    "category": "cardio",
+    "equipment": [],
+    "is_bodyweight": true,
+    "instructions": "Run in place, driving the knees up to hip height and pumping the arms.",
+    "contraindications": "Use caution with knee or ankle pain."
+  },
+  {
+    "name": "Cat-Cow",
+    "primary_muscle": "back",
+    "secondary_muscles": ["core"],
+    "category": "mobility",
+    "equipment": [],
+    "instructions": "On hands and knees, slowly alternate between arching the back up and letting the belly drop, moving with your breath.",
+    "contraindications": null
+  },
+  {
+    "name": "Thoracic Spine Rotation",
+    "primary_muscle": "back",
+    "secondary_muscles": ["shoulders"],
+    "category": "mobility",
+    "equipment": [],
+    "instructions": "Lying on your side with knees bent, open the top arm across your body to the other side, rotating through the upper back, then return.",
+    "contraindications": null
+  },
+  {
+    "name": "World's Greatest Stretch",
+    "primary_muscle": "full_body",
+    "secondary_muscles": ["glutes", "hamstrings", "back"],
+    "category": "mobility",
+    "equipment": [],
+    "instructions": "From a lunge, place the same-side hand as your front foot on the floor, rotate the other arm to the ceiling, then straighten the front leg to stretch the hamstring.",
+    "contraindications": null
+  },
+  {
+    "name": "Half-Kneeling Hip Flexor Stretch",
+    "primary_muscle": "quadriceps",
+    "secondary_muscles": ["glutes"],
+    "category": "mobility",
+    "equipment": [],
+    "instructions": "Kneeling on one knee, tuck the pelvis under and shift forward until you feel a stretch at the front of the back hip. Hold 30-60 seconds.",
+    "contraindications": "Pad the knee; use caution with knee pain."
+  },
+  {
+    "name": "Band Shoulder Dislocate",
+    "primary_muscle": "shoulders",
+    "secondary_muscles": ["back"],
+    "category": "mobility",
+    "equipment": ["resistance bands"],
+    "instructions": "Holding a band wide with straight arms, slowly bring it over your head and behind you, then back to the front. Widen the grip if needed.",
+    "contraindications": "Avoid with shoulder instability or a history of dislocation."
+  },
+  {
+    "name": "Deep Squat Hold",
+    "primary_muscle": "glutes",
+    "secondary_muscles": ["quadriceps"],
+    "category": "mobility",
+    "equipment": [],
+    "instructions": "Sink into the bottom of a squat with heels down, using your elbows to gently push the knees out, and hold while breathing slowly.",
+    "contraindications": "Use caution with knee pain; hold onto a support if balance is an issue."
+  }
+]

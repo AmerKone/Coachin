@@ -76,6 +76,7 @@ def test_profile_validation(client: TestClient, auth_headers: dict) -> None:
         {"training_days_per_week": 8},
         {"height_cm": 20},
         {"primary_goal": "get_huge"},
+        {"available_equipment": ["full gym"]},  # must match the Equipment vocabulary
         {"unknown_field": 1},
     ):
         response = client.put(PROFILE, json=bad, headers=auth_headers)

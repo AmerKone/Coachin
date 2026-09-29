@@ -23,8 +23,9 @@ GOALS = {
     "strength": "Strength",
     "endurance": "Endurance",
 }
-EQUIPMENT = ["bodyweight only", "dumbbells", "barbell", "squat rack", "bench", "kettlebells",
-             "pull-up bar", "resistance bands", "cable machine", "full gym"]
+# Must match backend `Equipment` enum values so exercises can be matched to what the user owns.
+EQUIPMENT = ["barbell", "dumbbells", "kettlebells", "squat rack", "bench", "pull-up bar", "dip bars",
+             "resistance bands", "cable machine", "machines", "cardio machine"]
 DIETS = ["vegetarian", "vegan", "pescatarian", "halal", "kosher", "gluten-free", "lactose-free",
          "nut allergy"]
 VOICES = [None, "alloy", "echo", "fable", "onyx", "nova", "shimmer"]
@@ -63,9 +64,12 @@ def render_form(profile: dict[str, Any]) -> dict[str, Any] | None:
         training_days = c1.slider("Training days per week", 1, 7, profile.get("training_days_per_week", 3))
         session_minutes = c2.slider("Session length (minutes)", 10, 240,
                                     profile.get("session_duration_min", 60), step=5)
-        saved_equipment = profile.get("available_equipment", [])
-        equipment = st.multiselect("Available equipment", sorted(set(EQUIPMENT) | set(saved_equipment)),
-                                   default=saved_equipment, accept_new_options=True)
+        saved_equipment = [e for e in profile.get("available_equipment", []) if e in EQUIPMENT]
+        full_gym = st.checkbox("I train at a fully equipped gym",
+                               value=set(saved_equipment) == set(EQUIPMENT))
+        equipment = st.multiselect("Available equipment", EQUIPMENT, default=saved_equipment,
+                                   help="Leave empty if you train with bodyweight only. "
+                                        "Ignored when the full-gym box is ticked.")
 
         st.subheader("Health & safety")
         st.caption("Your coach uses this to avoid unsafe exercises. Leave blank if none.")
@@ -107,7 +111,7 @@ def render_form(profile: dict[str, Any]) -> dict[str, Any] | None:
         "primary_goal": primary_goal,
         "training_days_per_week": training_days,
         "session_duration_min": session_minutes,
-        "available_equipment": equipment,
+        "available_equipment": list(EQUIPMENT) if full_gym else equipment,
         "injuries": injuries.strip() or None,
         "medical_conditions": medical_conditions.strip() or None,
         "medical_clearance": medical_clearance,

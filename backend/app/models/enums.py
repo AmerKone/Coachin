@@ -53,6 +53,24 @@ class ExerciseCategory(StrEnum):
     MOBILITY = "mobility"
 
 
+class Equipment(StrEnum):
+    """Equipment an exercise requires. An exercise needing none has an empty list."""
+
+    BARBELL = "barbell"
+    DUMBBELLS = "dumbbells"
+    KETTLEBELLS = "kettlebells"
+    SQUAT_RACK = "squat rack"
+    BENCH = "bench"
+    PULL_UP_BAR = "pull-up bar"
+    DIP_BARS = "dip bars"
+    RESISTANCE_BANDS = "resistance bands"
+    CABLE_MACHINE = "cable machine"
+    MACHINES = "machines"
+    """Plate-loaded or selectorized gym machines (leg press, leg curl, ...)."""
+    CARDIO_MACHINE = "cardio machine"
+    """Treadmill, bike, rower, etc."""
+
+
 class MealType(StrEnum):
     BREAKFAST = "breakfast"
     LUNCH = "lunch"

@@ -2,7 +2,7 @@
 
 from pydantic import Field
 
-from app.models.enums import ExerciseCategory, MuscleGroup
+from app.models.enums import Equipment, ExerciseCategory, MuscleGroup
 from app.schemas.common import CoachinSchema, ORMReadSchema
 
 
@@ -11,8 +11,10 @@ class ExerciseBase(CoachinSchema):
     primary_muscle: MuscleGroup
     secondary_muscles: list[MuscleGroup] = Field(default_factory=list)
     category: ExerciseCategory
-    equipment: list[str] = Field(default_factory=list)
+    equipment: list[Equipment] = Field(default_factory=list)
+    """All equipment required; empty means no equipment needed."""
     is_bodyweight: bool = False
+    """True when the user's body weight is the main load (push-up, pull-up)."""
     instructions: str | None = None
     contraindications: str | None = None
 

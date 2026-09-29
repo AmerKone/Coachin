@@ -4,7 +4,7 @@ from typing import Annotated, ClassVar
 
 from pydantic import AfterValidator, EmailStr, Field, PastDate, model_validator
 
-from app.models.enums import FitnessGoal, FitnessLevel, Sex
+from app.models.enums import Equipment, FitnessGoal, FitnessLevel, Sex
 from app.schemas.common import CoachinSchema, TimestampedReadSchema
 from app.services.security import BCRYPT_MAX_PASSWORD_BYTES
 
@@ -61,7 +61,7 @@ class UserProfileBase(CoachinSchema):
     primary_goal: FitnessGoal = FitnessGoal.GENERAL_FITNESS
     training_days_per_week: int = Field(default=3, ge=1, le=7)
     session_duration_min: int = Field(default=60, ge=10, le=240)
-    available_equipment: list[str] = Field(default_factory=list)
+    available_equipment: list[Equipment] = Field(default_factory=list)
 
     injuries: str | None = None
     medical_conditions: str | None = None
@@ -101,7 +101,7 @@ class UserProfileUpdate(CoachinSchema):
     primary_goal: FitnessGoal | None = None
     training_days_per_week: int | None = Field(default=None, ge=1, le=7)
     session_duration_min: int | None = Field(default=None, ge=10, le=240)
-    available_equipment: list[str] | None = None
+    available_equipment: list[Equipment] | None = None
     injuries: str | None = None
     medical_conditions: str | None = None
     medical_clearance: bool | None = None
