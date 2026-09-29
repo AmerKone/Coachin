@@ -160,8 +160,8 @@ def sets_table(session: dict[str, Any]) -> pd.DataFrame:
         "Exercise": s["exercise"]["name"],
         "Set": s["set_number"],
         "Reps": s["reps"],
-        "Weight (kg)": s["weight_kg"] if s["weight_kg"] is not None else "—",
-        "RPE": s["rpe"] if s["rpe"] is not None else "—",
+        "Weight (kg)": s["weight_kg"],  # None (blank) for bodyweight: keeps the column numeric
+        "RPE": s["rpe"],
     } for s in session["sets"]])
 
 

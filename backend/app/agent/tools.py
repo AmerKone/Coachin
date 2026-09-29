@@ -15,6 +15,7 @@ from zoneinfo import ZoneInfo
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
+from app.agent.history_tools import HISTORY_TOOL_DEFINITIONS, HISTORY_TOOL_HANDLERS
 from app.models import BodyMetric, ExerciseSet, ProgramWorkout, User, WorkoutSession
 from app.models.enums import EntrySource, MealType
 from app.schemas import MealEstimateRequest
@@ -253,7 +254,9 @@ TOOL_HANDLERS: dict[str, ToolHandler] = {
     "get_nutrition_summary": get_nutrition_summary,
     "log_body_weight": log_body_weight,
     "swap_exercise": swap_exercise,
+    **HISTORY_TOOL_HANDLERS,
 }
+TOOL_DEFINITIONS += HISTORY_TOOL_DEFINITIONS
 
 # Human-readable labels for actions that change data, shown in the chat UI.
 ACTION_LABELS = {

@@ -33,17 +33,28 @@ def month_bounds(first: date, today: date) -> tuple[date, date]:
     return first, min(last, today)
 
 
-def choose_period(today: date) -> tuple[date, date, bool]:
-    """Returns (start, end, is_complete_month)."""
+LONG_PERIODS = {"12m": ("Last 12 months", 365), "3m": ("Last 3 months", 91)}
+
+
+def choose_period(today: date) -> tuple[date, date, str]:
+    """Returns (start, end, kind) where kind is "month", "current_month" or "long"."""
     months = []
     first = today.replace(day=1)
     for _ in range(12):
         months.append(first)
         first = (first - timedelta(days=1)).replace(day=1)
-    choice = st.selectbox("Month", months, format_func=lambda m: ("This month (so far)" if m == months[0]
-                          else f"{m:%B %Y}"), index=1 if today.day <= 3 else 0)
+    options = [*months, *LONG_PERIODS]
+
+    def label(option) -> str:
+        if option in LONG_PERIODS:
+            return LONG_PERIODS[option][0]
+        return "This month (so far)" if option == months[0] else f"{option:%B %Y}"
+
+    choice = st.selectbox("Period", options, format_func=label, index=1 if today.day <= 3 else 0)
+    if choice in LONG_PERIODS:
+        return today - timedelta(days=LONG_PERIODS[choice][1] - 1), today, "long"
     start, end = month_bounds(choice, today)
-    return start, end, choice != months[0]
+    return start, end, "current_month" if choice == months[0] else "month"
 
 
 def render_tiles(o: dict[str, Any]) -> None:
@@ -103,6 +114,32 @@ def render_charts(o: dict[str, Any]) -> None:
                         "week_start": "Week of", "sessions": "Sessions", "sets": "Sets", "volume_kg": "Volume (kg)"}))
 
 
+def render_report_history(client: CoachinClient, start: date, end: date) -> None:
+    """For multi-month views: the saved monthly reports that fall inside the period."""
+    st.subheader("Monthly reports")
+    try:
+        reports = [r for r in client.list_reports() if start.isoformat() <= r["period_start"] <= end.isoformat()]
+    except API_ERRORS as exc:
+        handle_api_error(exc)
+        return
+    if not reports:
+        st.caption("No monthly reports in this period yet. Pick a single month above to write one.")
+        return
+    for summary in reports:
+        month = date.fromisoformat(summary["period_start"])
+        with st.expander(f"{month:%B %Y}"):
+            try:
+                report = client.get_report(summary["id"])
+            except API_ERRORS as exc:
+                handle_api_error(exc)
+                return
+            st.markdown(report["summary"])
+            if report["recommendations"]:
+                st.markdown("**Recommendations**")
+                for line in report["recommendations"].splitlines():
+                    st.markdown(f"- {line}")
+
+
 def render_report(client: CoachinClient, start: date, end: date, complete: bool) -> None:
     st.subheader("Your coach's report")
     try:
@@ -158,7 +195,7 @@ def main() -> None:
     if message := st.session_state.pop("progress_message", None):
         st.success(message)
 
-    start, end, complete = choose_period(local_today())
+    start, end, kind = choose_period(local_today())
     try:
         overview = client.progress_overview(start, end, local_tz_name())
     except API_ERRORS as exc:
@@ -170,7 +207,10 @@ def main() -> None:
     st.divider()
     render_charts(overview)
     st.divider()
-    render_report(client, start, end, complete)
+    if kind == "long":
+        render_report_history(client, start, end)
+    else:
+        render_report(client, start, end, complete=kind == "month")
     render_disclaimer()
 
 

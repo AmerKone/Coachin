@@ -3,12 +3,13 @@
 import json
 import logging
 from dataclasses import dataclass, field
-from datetime import datetime
+from datetime import date, datetime, timedelta
 from typing import Any
 from zoneinfo import ZoneInfo
 
 from sqlalchemy.orm import Session
 
+from app.agent.history_tools import history_hint
 from app.agent.prompts import COACH_SYSTEM_PROMPT, NO_REFERENCE_MATERIAL
 from app.agent.tools import ACTION_LABELS, TOOL_DEFINITIONS, TOOL_HANDLERS, ToolContext, ToolError
 from app.models import Message, User
@@ -36,6 +37,15 @@ class AgentResult:
     tool_calls: list[dict[str, Any]] = field(default_factory=list)
     """Audit log of every tool call with its arguments and result."""
     retrieved_sources: list[str] = field(default_factory=list)
+
+
+def recent_days(today: date) -> str:
+    """Weekday -> date for the past week, so the model never has to do date arithmetic."""
+    days = []
+    for back in range(1, 8):
+        day = today - timedelta(days=back)
+        days.append(f"{day:%a} {day.isoformat()}" + (" (yesterday)" if back == 1 else ""))
+    return "Past 7 days: " + ", ".join(days) + "."
 
 
 class CoachAgent:
@@ -73,6 +83,7 @@ class CoachAgent:
             lines.append(f"Active program: {program.name}, week {week} of {program.duration_weeks}. "
                          f"Today: {today.name if today else 'rest day'}.")
 
+        lines.append(history_hint(self.db, user.id, ZoneInfo(tz_name)))
         day = self.nutrition.daily_summary(user.id, user.profile, now.date(), tz_name)
         eaten = f"{day.totals.calories:.0f} kcal, {day.totals.protein_g:.0f} g protein"
         target = (f" of {day.targets.calories:.0f} kcal, {day.targets.protein_g:.0f} g protein"
@@ -101,7 +112,7 @@ class CoachAgent:
         now = datetime.now(ZoneInfo(tz_name))
         system = COACH_SYSTEM_PROMPT.format(
             safety_instruction=f"\nSafety note for this message: {safety_instruction}\n" if safety_instruction else "",
-            now=now.strftime("%A %d %B %Y, %H:%M"),
+            now=now.strftime("%A %d %B %Y, %H:%M") + ". " + recent_days(now.date()),
             user_context=self.build_user_context(user, tz_name),
             retrieved_context=KnowledgeRetriever.format_context(docs) or NO_REFERENCE_MATERIAL,
         )

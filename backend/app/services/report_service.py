@@ -21,10 +21,12 @@ from app.models import (
     Exercise,
     ExerciseSet,
     NutritionLog,
+    ProgramWorkout,
     ProgressReport,
     SafetyEvent,
     TrainingProgram,
     User,
+    UserProfile,
     WorkoutSession,
 )
 from app.models.enums import ProgramStatus
@@ -32,6 +34,7 @@ from app.schemas import (
     BodyStats,
     CaloriePoint,
     ExerciseProgress,
+    MacroTotals,
     NutritionStats,
     ProgressOverview,
     StrengthPoint,
@@ -41,7 +44,7 @@ from app.schemas import (
 )
 from app.services import llm_client
 from app.services.llm_client import LLMError, StructuredLLM
-from app.services.nutrition_service import NutritionService
+from app.services.nutrition_service import NutritionService, suggest_targets
 from app.services.overload_service import estimate_1rm
 
 MAX_STRENGTH_EXERCISES = 4
@@ -87,8 +90,9 @@ class ReportService:
             return moment.astimezone(tz).date()
 
         training, volume, strength = self._training(user, start, end, start_utc, end_utc, local_day)
-        nutrition, calories = self._nutrition(user, start_utc, end_utc, local_day)
         body, weights = self._body(user, start_utc, end_utc, local_day)
+        targets = self.targets_during(user, start, end, body.start_weight_kg)
+        nutrition, calories = self._nutrition(user, start_utc, end_utc, local_day, targets)
         safety_events = self.db.scalar(select(func.count()).select_from(SafetyEvent).where(
             SafetyEvent.user_id == user.id, SafetyEvent.created_at >= start_utc, SafetyEvent.created_at < end_utc)) or 0
 
@@ -115,8 +119,12 @@ class ReportService:
     def _training(self, user, start, end, start_utc, end_utc, local_day):
         rows = self.db.execute(
             select(WorkoutSession.id, WorkoutSession.started_at, ExerciseSet.exercise_id, ExerciseSet.reps,
-                   ExerciseSet.weight_kg, ExerciseSet.is_warmup)
+                   ExerciseSet.weight_kg, ExerciseSet.is_warmup,
+                   (ProgramWorkout.week_number == TrainingProgram.duration_weeks)
+                   & (TrainingProgram.duration_weeks >= 4))
             .join(ExerciseSet, ExerciseSet.session_id == WorkoutSession.id, isouter=True)
+            .join(ProgramWorkout, ProgramWorkout.id == WorkoutSession.program_workout_id, isouter=True)
+            .join(TrainingProgram, TrainingProgram.id == ProgramWorkout.program_id, isouter=True)
             .where(WorkoutSession.user_id == user.id, WorkoutSession.started_at >= start_utc,
                    WorkoutSession.started_at < end_utc)
             .order_by(WorkoutSession.started_at)
@@ -125,9 +133,10 @@ class ReportService:
         sessions: dict[uuid.UUID, date] = {}
         weeks: dict[date, dict] = defaultdict(lambda: {"sessions": set(), "sets": 0, "volume": 0.0})
         best_1rm: dict[uuid.UUID, dict[date, float]] = defaultdict(dict)
+        deload_days: dict[uuid.UUID, set[date]] = defaultdict(set)
         sets_per_exercise: dict[uuid.UUID, int] = defaultdict(int)
         total_sets, total_volume = 0, 0.0
-        for session_id, started_at, exercise_id, reps, weight, warmup in rows:
+        for session_id, started_at, exercise_id, reps, weight, warmup, is_deload in rows:
             day = local_day(started_at)
             sessions[session_id] = day
             week = weeks[day - timedelta(days=day.weekday())]
@@ -142,6 +151,8 @@ class ReportService:
                 week["volume"] += weight * reps
                 e1rm = estimate_1rm(weight, reps)
                 best_1rm[exercise_id][day] = max(best_1rm[exercise_id].get(day, 0), e1rm)
+                if is_deload:
+                    deload_days[exercise_id].add(day)
 
         volume = [VolumePoint(week_start=w, sessions=len(v["sessions"]), sets=v["sets"],
                               volume_kg=round(v["volume"], 1)) for w, v in sorted(weeks.items())]
@@ -152,7 +163,13 @@ class ReportService:
         strength = []
         for exercise_id in weighted[:MAX_STRENGTH_EXERCISES]:
             by_day = sorted(best_1rm[exercise_id].items())
-            first, last = by_day[0][1], by_day[-1][1]  # unrounded, so the % change is exact
+            # The % change ignores planned deload sessions (still drawn on the curve) and compares
+            # the best of the first third of sessions with the best of the last third, so a light
+            # week or one off day at either end doesn't flip the trend. Unrounded values.
+            trend = [(d, v) for d, v in by_day if d not in deload_days[exercise_id]] or by_day
+            window = max(1, len(trend) // 3)
+            first = max(v for _, v in trend[:window])
+            last = max(v for _, v in trend[-window:])
             strength.append(ExerciseProgress(
                 exercise_id=exercise_id, name=names.get(exercise_id, "Exercise"),
                 points=[StrengthPoint(day=d, estimated_1rm_kg=round(v, 1)) for d, v in by_day],
@@ -175,7 +192,30 @@ class ReportService:
             strength,
         )
 
-    def _nutrition(self, user, start_utc, end_utc, local_day):
+    def targets_during(self, user: User, start: date, end: date, weight_kg: float | None) -> MacroTotals | None:
+        """Nutrition targets that applied in the period (None if its programs had different goals).
+
+        Targets saved in the profile win (their history isn't recorded). Otherwise the suggestion
+        is computed for the goal the user had then and their weight at the start of the period,
+        so a past fat-loss month isn't judged against today's maintenance calories.
+        """
+        profile = user.profile
+        if profile is None:
+            return None
+        if any(v is not None for v in (profile.daily_calorie_target, profile.daily_protein_target_g,
+                                        profile.daily_carbs_target_g, profile.daily_fat_target_g)):
+            return NutritionService(self.db).targets(profile).effective
+        if len(self.goals_during(user, start, end)) > 1:
+            return None  # e.g. a year spanning a cut and a build has no single meaningful target
+        then = UserProfile(
+            sex=profile.sex, date_of_birth=profile.date_of_birth, height_cm=profile.height_cm,
+            weight_kg=weight_kg or profile.weight_kg, training_days_per_week=profile.training_days_per_week,
+            primary_goal=self.goal_during(user, start, end), fitness_level=profile.fitness_level,
+        )  # transient: never added to the session
+        suggested, _, _ = suggest_targets(then, today=end)
+        return suggested
+
+    def _nutrition(self, user, start_utc, end_utc, local_day, targets: MacroTotals | None):
         entries = self.db.scalars(select(NutritionLog).where(
             NutritionLog.user_id == user.id, NutritionLog.eaten_at >= start_utc, NutritionLog.eaten_at < end_utc))
         per_day: dict[date, list[float]] = defaultdict(lambda: [0.0, 0.0])
@@ -185,7 +225,6 @@ class ReportService:
             totals[1] += entry.protein_g
         series = [CaloriePoint(day=d, calories=round(c), protein_g=round(p, 1)) for d, (c, p) in sorted(per_day.items())]
 
-        targets = NutritionService(self.db).targets(user.profile).effective
         calorie_target = targets.calories if targets and targets.calories else None
         protein_target = targets.protein_g if targets and targets.protein_g else None
         days = len(series)
@@ -237,7 +276,7 @@ class ReportService:
         messages = [{"role": "user", "content": PROGRESS_REPORT_PROMPT.format(
             name=(user.full_name or "the user").split(" ")[0],
             period_start=start.isoformat(), period_end=end.isoformat(),
-            goal=user.profile.primary_goal if user.profile else "not set",
+            goal=str(self.goal_during(user, start, end)).replace("_", " "),
             metrics_json=metrics_json,
         )}]
         try:
@@ -260,6 +299,28 @@ class ReportService:
         self.db.commit()
         self.db.refresh(report)
         return report
+
+    def goals_during(self, user: User, start: date, end: date) -> list[str]:
+        """Goals of the (non-draft) programs overlapping the period, most recently started first."""
+        programs = self.db.scalars(
+            select(TrainingProgram)
+            .where(TrainingProgram.user_id == user.id, TrainingProgram.start_date <= end,
+                   TrainingProgram.status != ProgramStatus.DRAFT)
+            .order_by(TrainingProgram.start_date.desc())
+        )
+        goals: list[str] = []
+        for program in programs:
+            if program.start_date + timedelta(weeks=program.duration_weeks) > start and program.goal not in goals:
+                goals.append(program.goal)
+        return goals
+
+    def goal_during(self, user: User, start: date, end: date) -> str:
+        """The goal the user was training for in the period: the goal of the most recently started
+        program that overlaps it, falling back to the profile's current goal."""
+        goals = self.goals_during(user, start, end)
+        if goals:
+            return goals[0]
+        return user.profile.primary_goal if user.profile else "not set"
 
     def list_reports(self, user_id: uuid.UUID) -> list[ProgressReport]:
         return list(self.db.scalars(select(ProgressReport).where(ProgressReport.user_id == user_id)

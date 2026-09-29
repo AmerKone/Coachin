@@ -49,9 +49,61 @@ def _layout(theme: dict[str, Any], y_title: str, show_legend: bool) -> dict[str,
     }
 
 
-def _line(name: str, x: list, y: list, color: str, hover: str, width: int = 2, **extra) -> go.Scatter:
+DENSE_POINTS = 45
+"""Above this many points, lines drop their markers and daily values become faint dots + average."""
+
+
+def _as_dates(values: list) -> list[date]:
+    return [v if isinstance(v, date) else date.fromisoformat(str(v)[:10]) for v in values]
+
+
+LONG_SPAN_DAYS = 120
+GAP_DAYS = 42
+"""A line is broken when an exercise wasn't done for longer than this."""
+
+
+def _is_long(days: list) -> bool:
+    dates = _as_dates(days)
+    return bool(dates) and (max(dates) - min(dates)).days > LONG_SPAN_DAYS
+
+
+def _fit_date_axis(fig: go.Figure, days: list) -> None:
+    """Fit the x-axis to the data (end labels live in the right margin); month-year ticks for
+    long periods, day-month ticks otherwise."""
+    dates = _as_dates(days)
+    if not dates:
+        return
+    first, last = min(dates), max(dates)
+    pad = timedelta(days=max(1, round((last - first).days * 0.02)))
+    fig.update_xaxes(range=[first - pad, last + pad])
+    if (last - first).days > LONG_SPAN_DAYS:
+        fig.update_xaxes(tickformat="%b %Y", dtick="M2")
+
+
+def _break_gaps(days: list, values: list, max_gap: int = GAP_DAYS) -> tuple[list, list]:
+    """Insert a None between points more than `max_gap` days apart so the line breaks there."""
+    dates = _as_dates(days)
+    out_x, out_y = [], []
+    for i, (d, v) in enumerate(zip(dates, values)):
+        if i and (d - dates[i - 1]).days > max_gap:
+            out_x.append(dates[i - 1] + (d - dates[i - 1]) / 2)
+            out_y.append(None)
+        out_x.append(d)
+        out_y.append(v)
+    return out_x, out_y
+
+
+def trailing_max(points: list[tuple[date, float]], days: int = 28) -> list[float]:
+    """Best value within the trailing `days`-day window ending at each point."""
+    return [max(v for d, v in points if day - timedelta(days=days - 1) <= d <= day) for day, _ in points]
+
+
+def _line(name: str, x: list, y: list, color: str, hover: str, width: int = 2,
+          markers: bool | None = None, **extra) -> go.Scatter:
+    if markers is None:
+        markers = len(x) <= DENSE_POINTS
     return go.Scatter(
-        x=x, y=y, name=name, mode="lines+markers", connectgaps=True,
+        x=x, y=y, name=name, mode="lines+markers" if markers else "lines", connectgaps=False,
         line={"color": color, "width": width},
         marker={"size": 8, "color": color, "line": {"width": 2, "color": "rgba(0,0,0,0)"}},
         hovertemplate=f"{name}: {hover}<extra></extra>", **extra,
@@ -109,16 +161,25 @@ def exercise_progress_chart(history: list[dict[str, Any]], exercise_name: str) -
 def strength_chart(exercises: list[dict[str, Any]]) -> go.Figure:
     """Estimated 1RM curves for up to four exercises (categorical slots in fixed order)."""
     theme = _theme()
+    exercises = exercises[:4]
+    all_days = [p["day"] for e in exercises for p in e["points"]]
+    long = _is_long(all_days)
+    markers = not long and max((len(e["points"]) for e in exercises), default=0) <= DENSE_POINTS
     fig = go.Figure()
     labels = []
-    for exercise, color in zip(exercises[:4], theme["series"]):
-        days = [p["day"] for p in exercise["points"]]
+    for exercise, color in zip(exercises, theme["series"]):
+        days = _as_dates([p["day"] for p in exercise["points"]])
         values = [p["estimated_1rm_kg"] for p in exercise["points"]]
-        fig.add_trace(_line(exercise["name"], days, values, color, "%{y:.1f} kg"))
+        if long:  # best of the last 4 weeks: hides planned deloads and off days
+            values = [round(v, 1) for v in trailing_max(list(zip(days, values)))]
+        x, y = _break_gaps(days, values)
+        fig.add_trace(_line(exercise["name"], x, y, color, "%{y:.1f} kg", markers=markers))
         labels.append((days[-1], values[-1],
                        f"{exercise['name']}<br><b>{values[-1]:g} kg</b> ({exercise['change_pct']:+g}%)"))
     _spread_labels(fig, theme, labels)
-    fig.update_layout(**_layout(theme, "Estimated 1RM (kg)", show_legend=len(exercises) > 1))
+    title = "Best est. 1RM, last 4 weeks (kg)" if long else "Estimated 1RM (kg)"
+    fig.update_layout(**_layout(theme, title, show_legend=len(exercises) > 1))
+    _fit_date_axis(fig, all_days)
     return fig
 
 
@@ -136,19 +197,33 @@ def body_weight_trend_chart(points: list[dict[str, Any]]) -> go.Figure:
     fig.add_trace(_line("7-day average", days, average, color, "%{y:.1f} kg", width=3))
     _end_label(fig, theme, days[-1], average[-1], f"7-day average<br><b>{average[-1]:.1f} kg</b>")
     fig.update_layout(**_layout(theme, "kg", show_legend=True))
+    _fit_date_axis(fig, days)
     return fig
 
 
 def calories_chart(points: list[dict[str, Any]], target: float | None) -> go.Figure:
     """Calories per logged day, with the target as a dashed reference line (not a series)."""
     theme = _theme()
-    days = [p["day"] for p in points]
-    fig = go.Figure(_line("Calories", days, [p["calories"] for p in points], theme["series"][0], "%{y:,.0f} kcal"))
+    color = theme["series"][0]
+    days = _as_dates([p["day"] for p in points])
+    calories = [p["calories"] for p in points]
+    dense = len(points) > DENSE_POINTS
+    if dense:  # many days: faint daily dots + 7-day average, like the weight chart
+        average = rolling_average(list(zip(days, calories)))
+        fig = go.Figure([
+            go.Scatter(x=days, y=calories, name="Daily", mode="markers",
+                       marker={"size": 6, "color": color, "opacity": 0.35},
+                       hovertemplate="Day: %{y:,.0f} kcal<extra></extra>"),
+            _line("7-day average", days, average, color, "%{y:,.0f} kcal", width=3),
+        ])
+    else:
+        fig = go.Figure(_line("Calories", days, calories, color, "%{y:,.0f} kcal"))
     if target:
         fig.add_hline(y=target, line={"color": theme["muted"], "width": 1, "dash": "dash"},
                       annotation_text=f"Target {target:,.0f}", annotation_position="right",
                       annotation_font_color=theme["muted"])
-    fig.update_layout(**_layout(theme, "kcal", show_legend=False))
+    fig.update_layout(**_layout(theme, "kcal", show_legend=dense))
+    _fit_date_axis(fig, days)
     return fig
 
 
@@ -156,8 +231,23 @@ def volume_chart(points: list[dict[str, Any]]) -> go.Figure:
     """Working sets per week (x = the Monday of each week)."""
     theme = _theme()
     weeks = [date.fromisoformat(p["week_start"]) for p in points]
-    fig = go.Figure(_line("Sets", weeks, [p["sets"] for p in points], theme["series"][0], "%{y} sets"))
-    fig.update_layout(**_layout(theme, "Sets per week", show_legend=False))
-    fig.update_xaxes(tickvals=weeks, ticktext=[f"Wk of {w:%d %b}" for w in weeks])
+    sets = [p["sets"] for p in points]
+    color = theme["series"][0]
+    dense = len(weeks) > 8
+    if dense:
+        average = rolling_average(list(zip(weeks, sets)), days=28)
+        fig = go.Figure([
+            go.Scatter(x=weeks, y=sets, name="Weekly", mode="markers",
+                       marker={"size": 7, "color": color, "opacity": 0.35},
+                       hovertemplate="Week: %{y} sets<extra></extra>"),
+            _line("4-week average", weeks, average, color, "%{y:.0f} sets", width=3, markers=False),
+        ])
+    else:
+        fig = go.Figure(_line("Sets", weeks, sets, color, "%{y} sets"))
+    fig.update_layout(**_layout(theme, "Sets per week", show_legend=dense))
+    if not dense:
+        fig.update_xaxes(tickvals=weeks, ticktext=[f"Wk of {w:%d %b}" for w in weeks])
+    else:
+        _fit_date_axis(fig, weeks)
     fig.update_yaxes(rangemode="tozero")
     return fig

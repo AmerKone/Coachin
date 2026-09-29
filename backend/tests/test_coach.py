@@ -311,7 +311,7 @@ def test_emergency_short_circuits_agent(client: TestClient, auth_headers, user, 
     assert body["safety_notice"]["action_taken"] == "emergency"
     assert "emergency number" in body["assistant_message"]["content"]
     assert body["user_message"]["safety_flagged"] is True
-    event = db.scalar(select(SafetyEvent))
+    event = db.scalar(select(SafetyEvent).where(SafetyEvent.user_id == user.id))
     assert event.category == SafetyCategory.CARDIOVASCULAR and "chest pain" in event.trigger_text
     events = client.get("/api/v1/safety/events", headers=auth_headers).json()
     assert events[0]["action_taken"] == "emergency"
@@ -395,3 +395,91 @@ def test_voice_service_validates_before_calling_api() -> None:
     long_text = "This is a sentence. " * 400  # ~8000 chars
     pieces = _chunks(long_text, limit=4096)
     assert len(pieces) == 2 and all(len(p) <= 4096 for p in pieces) and pieces[0].endswith(".")
+
+
+# --- History tools ----------------------------------------------------------
+
+from app.agent.history_tools import (  # noqa: E402
+    get_exercise_history,
+    get_monthly_report,
+    get_progress_summary,
+    get_workouts,
+)
+from app.models import ProgressReport  # noqa: E402
+
+
+@pytest.fixture
+def history(db: Session, user: User, library) -> dict[str, uuid.UUID]:
+    """Dumbbell bench in December, barbell bench in January and March, one squat session."""
+    upsert_exercises(db, [
+        ExerciseCreate(name="Barbell Bench Press", primary_muscle="chest", category="compound", equipment=["barbell"]),
+        ExerciseCreate(name="Dumbbell Bench Press", primary_muscle="chest", category="compound", equipment=["dumbbells"]),
+    ])
+    ids = {e.name: e.id for e in db.scalars(select(Exercise))}
+
+    def session(day: str, exercise: str, *sets: tuple) -> WorkoutSession:
+        return WorkoutSession(user_id=user.id, started_at=datetime.fromisoformat(day).replace(hour=17, tzinfo=UTC),
+                              sets=[ExerciseSet(exercise_id=ids[exercise], set_number=i, reps=r, weight_kg=kg)
+                                    for i, (r, kg) in enumerate(sets, start=1)])
+
+    db.add_all([
+        session("2025-12-10", "Dumbbell Bench Press", (10, 20), (10, 20)),
+        session("2026-01-07", "Barbell Bench Press", (8, 35), (8, 35)),
+        session("2026-01-21", "Barbell Bench Press", (6, 40), (8, 37.5)),   # January heaviest: 40 x 6
+        session("2026-01-28", "Barbell Bench Press", (3, 42.5)),            # heavier but only 3 reps
+        session("2026-03-11", "Barbell Bench Press", (5, 47.5)),            # all-time best
+        session("2026-01-21", "Barbell Back Squat", (5, 60)),
+        ProgressReport(user_id=user.id, period_start=date(2026, 1, 1), period_end=date(2026, 1, 31), metrics={},
+                       summary="January: bench up 20%.", recommendations="Keep benching\nSleep more"),
+    ])
+    db.commit()
+    return ids
+
+
+def test_exercise_history_finds_january_pr(db: Session, user: User, history) -> None:
+    result = get_exercise_history(ctx(db, user), {"exercise_name": "bench press",
+                                                  "start_date": "2026-01-01", "end_date": "2026-01-31"})
+    (bench,) = result["results"]  # only the barbell bench was trained in January
+    assert bench["exercise"] == "Barbell Bench Press" and bench["sessions_in_period"] == 3
+    records = bench["records_in_period"]
+    assert records["heaviest_set"] == {"set": "42.5 kg x 3", "date": "2026-01-28"}
+    assert records["best_estimated_1rm_kg"] == {"value": 48.0, "from_set": "40 kg x 6", "date": "2026-01-21"}
+    assert bench["all_time_records"]["heaviest_set"] == {"set": "47.5 kg x 5", "date": "2026-03-11"}
+    assert bench["first_ever_logged"] == "2026-01-07"
+
+
+def test_exercise_history_returns_each_match_when_several_were_trained(db: Session, user: User, history) -> None:
+    result = get_exercise_history(ctx(db, user), {"exercise_name": "bench press"})  # whole history
+    assert {r["exercise"] for r in result["results"]} == {"Barbell Bench Press", "Dumbbell Bench Press"}
+    assert result["period"]["start"] == "2025-12-10"
+    with pytest.raises(ToolError, match="didn't log"):
+        get_exercise_history(ctx(db, user), {"exercise_name": "bench press", "start_date": "2026-06-01"})
+    with pytest.raises(ToolError, match="date like"):
+        get_exercise_history(ctx(db, user), {"exercise_name": "bench", "start_date": "January"})
+
+
+def test_workouts_progress_and_reports(db: Session, user: User, history) -> None:
+    workouts = get_workouts(ctx(db, user), {"start_date": "2026-01-21", "end_date": "2026-01-21"})
+    assert workouts["sessions_found"] == 2
+    assert {name for s in workouts["sessions"] for name in s["exercises"]} == {"Barbell Bench Press", "Barbell Back Squat"}
+
+    summary = get_progress_summary(ctx(db, user), {"start_date": "2026-01-01", "end_date": "2026-01-31"})
+    assert summary["training"]["sessions_completed"] == 4 and summary["training"]["total_sets"] == 6
+    assert summary["strength_changes"][0]["exercise"] == "Barbell Bench Press"
+
+    assert get_monthly_report(ctx(db, user), {"month": "2026-01"})["recommendations"] == ["Keep benching", "Sleep more"]
+    assert get_monthly_report(ctx(db, user), {"month": "2026-02"})["report"] is None
+    with pytest.raises(ToolError):
+        get_progress_summary(ctx(db, user), {"start_date": "2024-01-01", "end_date": "2026-01-31"})
+
+
+def test_agent_knows_history_exists(db: Session, user: User, history) -> None:
+    llm = FakeToolLLM(call("get_exercise_history", exercise_name="bench press", start_date="2026-01-01",
+                           end_date="2026-01-31"), say("Your January bench PR was 42.5 kg for 3."))
+    agent = CoachAgent(db, llm=llm, retriever=KnowledgeRetriever(store=NoKnowledge()))
+    result = agent.run(user, "what was my bench press PR in January?", history=[])
+    system = llm.calls[0][0]["content"]
+    assert "Training history: 6 workouts logged since 10 December 2025" in system
+    assert "never say you can't access their history" in system
+    assert json.loads(llm.calls[1][-1]["content"])["results"][0]["records_in_period"]["heaviest_set"]["set"] == "42.5 kg x 3"
+    assert result.actions == []  # lookups don't change data

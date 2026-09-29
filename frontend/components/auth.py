@@ -6,13 +6,18 @@ import streamlit as st
 from client.api_client import ApiError, CoachinClient
 from config import BACKEND_URL
 
-_CLIENT_KEY = "api_client"
+_TOKEN_KEY = "access_token"
 _USER_KEY = "user"
 
 
 def get_client() -> CoachinClient | None:
-    """Return the authenticated client from `st.session_state`, or None if logged out."""
-    return st.session_state.get(_CLIENT_KEY)
+    """Build an authenticated client from the token in `st.session_state`, or None if logged out.
+
+    Only the token is kept in the session (not the client object), so a code change to
+    `CoachinClient` takes effect immediately instead of leaving a stale instance around.
+    """
+    token = st.session_state.get(_TOKEN_KEY)
+    return CoachinClient(token) if token else None
 
 
 def current_user() -> dict | None:
@@ -20,7 +25,7 @@ def current_user() -> dict | None:
 
 
 def logout() -> None:
-    st.session_state.pop(_CLIENT_KEY, None)
+    st.session_state.pop(_TOKEN_KEY, None)
     st.session_state.pop(_USER_KEY, None)
 
 
@@ -59,9 +64,9 @@ def handle_api_error(exc: Exception) -> None:
 
 
 def _sign_in(client: CoachinClient, email: str, password: str) -> None:
-    client.login(email, password)
+    token = client.login(email, password)
     st.session_state[_USER_KEY] = client.get_me()
-    st.session_state[_CLIENT_KEY] = client
+    st.session_state[_TOKEN_KEY] = token
     st.rerun()
 
 

@@ -242,3 +242,86 @@ def test_record_metric_updates_profile_only_when_latest(client: TestClient, auth
     assert [m["weight_kg"] for m in metrics] == [71.0, 69.4]
     assert client.post(f"{PROGRESS}/metrics", headers=auth_headers,
                        json={"recorded_at": now.isoformat(), "weight_kg": 900}).status_code == 422
+
+
+def test_strength_change_ignores_a_final_deload(client: TestClient, auth_headers, user, db: Session) -> None:
+    clear_exercise_library(db)
+    upsert_exercises(db, [ExerciseCreate(name="Barbell Back Squat", primary_muscle="quadriceps",
+                                         category="compound", equipment=["barbell"])])
+    squat = db.scalar(select(Exercise.id))
+    # Steady progress, then a lighter deload session on the last day of the month.
+    for day, kg in [("2026-09-01", 60), ("2026-09-04", 62.5), ("2026-09-08", 65), ("2026-09-11", 67.5),
+                    ("2026-09-15", 70), ("2026-09-26", 55)]:
+        db.add(WorkoutSession(user_id=user.id, started_at=at(day),
+                              sets=[ExerciseSet(exercise_id=squat, set_number=1, reps=5, weight_kg=kg)]))
+    db.commit()
+    squat_progress = client.get(f"{PROGRESS}/overview", params=SEPT, headers=auth_headers).json()["strength"][0]
+    assert squat_progress["change_pct"] == pytest.approx(12.0, abs=0.1)  # best early (62.5) -> best late (70)
+    assert squat_progress["points"][-1]["estimated_1rm_kg"] == 64.2   # the deload is still shown on the curve
+
+
+def test_strength_change_skips_planned_deload_sessions(client: TestClient, auth_headers, user, db: Session) -> None:
+    clear_exercise_library(db)
+    upsert_exercises(db, [ExerciseCreate(name="Barbell Back Squat", primary_muscle="quadriceps",
+                                         category="compound", equipment=["barbell"])])
+    squat = db.scalar(select(Exercise.id))
+    program = TrainingProgram(user_id=user.id, name="B", goal="strength", status=ProgramStatus.ACTIVE,
+                              start_date=date(2026, 8, 24), duration_weeks=4)
+    program.workouts = [ProgramWorkout(week_number=w, day_of_week=0, name=f"W{w}") for w in (1, 2, 3, 4)]
+    db.add(program)
+    db.flush()
+    week = {w.week_number: w.id for w in program.workouts}
+    # Only three sessions in the month and the last one is the planned deload (week 4).
+    for day, kg, wk in [("2026-09-07", 100, 3), ("2026-09-14", 102.5, 4), ("2026-09-21", 90, 4)]:
+        db.add(WorkoutSession(user_id=user.id, started_at=at(day), program_workout_id=week[wk] if day != "2026-09-07" else week[3],
+                              sets=[ExerciseSet(exercise_id=squat, set_number=1, reps=5, weight_kg=kg)]))
+    db.commit()
+    progress = client.get(f"{PROGRESS}/overview", params=SEPT, headers=auth_headers).json()["strength"][0]
+    assert len(progress["points"]) == 3                       # deloads are still on the curve
+    assert progress["change_pct"] == pytest.approx(0.0)        # only the week-3 session counts: no fake drop
+
+
+def test_report_uses_goal_of_program_in_that_period(db: Session, user: User) -> None:
+    db.add_all([
+        TrainingProgram(user_id=user.id, name="Cut", goal="fat_loss", status=ProgramStatus.COMPLETED,
+                        start_date=date(2026, 1, 5), duration_weeks=8),
+        TrainingProgram(user_id=user.id, name="Build", goal="muscle_gain", status=ProgramStatus.ACTIVE,
+                        start_date=date(2026, 3, 2), duration_weeks=8),
+        TrainingProgram(user_id=user.id, name="Draft", goal="endurance", status=ProgramStatus.DRAFT,
+                        start_date=date(2026, 1, 1), duration_weeks=4),
+    ])
+    db.commit()
+    service = ReportService(db)
+    assert service.goal_during(user, date(2026, 1, 1), date(2026, 1, 31)) == "fat_loss"   # drafts ignored
+    assert service.goal_during(user, date(2026, 3, 1), date(2026, 3, 31)) == "muscle_gain"
+    assert service.goal_during(user, date(2025, 6, 1), date(2025, 6, 30)) == "strength"  # profile fallback
+
+
+def test_past_month_targets_use_that_periods_goal_and_weight(db: Session, user: User) -> None:
+    # Profile today: strength goal, no saved targets. In January she was cutting at 80 kg.
+    user.profile.daily_calorie_target = user.profile.daily_protein_target_g = None
+    user.profile.weight_kg = 70
+    db.add(TrainingProgram(user_id=user.id, name="Cut", goal="fat_loss", status=ProgramStatus.COMPLETED,
+                           start_date=date(2026, 1, 5), duration_weeks=8))
+    db.commit()
+    service = ReportService(db)
+    january = service.targets_during(user, date(2026, 1, 1), date(2026, 1, 31), weight_kg=80)
+    today = service.targets_during(user, date(2026, 9, 1), date(2026, 9, 30), weight_kg=70)
+    assert january.calories < today.calories          # deficit then, maintenance now
+    assert january.protein_g == 160                   # 2.0 g/kg x 80 kg for fat loss
+
+    user.profile.daily_calorie_target = 2500          # explicit profile targets always win
+    db.commit()
+    assert service.targets_during(user, date(2026, 1, 1), date(2026, 1, 31), weight_kg=80).calories == 2500
+
+
+def test_no_single_target_when_period_spans_different_goals(db: Session, user: User) -> None:
+    user.profile.daily_calorie_target = user.profile.daily_protein_target_g = None
+    db.add_all([TrainingProgram(user_id=user.id, name="Cut", goal="fat_loss", status=ProgramStatus.COMPLETED,
+                                start_date=date(2026, 1, 5), duration_weeks=8),
+                TrainingProgram(user_id=user.id, name="Build", goal="muscle_gain", status=ProgramStatus.ACTIVE,
+                                start_date=date(2026, 3, 2), duration_weeks=8)])
+    db.commit()
+    service = ReportService(db)
+    assert service.targets_during(user, date(2026, 1, 1), date(2026, 4, 30), weight_kg=75) is None
+    assert service.targets_during(user, date(2026, 1, 1), date(2026, 1, 31), weight_kg=75) is not None
