@@ -85,11 +85,21 @@ def render_today(client) -> None:
     if workout is None:
         st.write("Rest day. Recover well! 💤")
     else:
+        try:
+            targets = client.next_targets(workout["id"])
+        except (ApiError, httpx.TransportError) as exc:
+            handle_api_error(exc)
+            return
         st.markdown(f"**{workout['name']}**" + (f" — _{workout['focus']}_" if workout.get("focus") else ""))
-        for planned in workout["exercises"]:
-            lo, hi = planned["target_reps_min"], planned["target_reps_max"]
+        for rec in (targets or {}).get("exercises", []):
+            lo, hi = rec["recommended_reps_min"], rec["recommended_reps_max"]
             reps = str(lo) if lo == hi else f"{lo}-{hi}"
-            st.markdown(f"- {planned['exercise']['name']}: {planned['target_sets']} × {reps}")
+            weight = f" @ {rec['recommended_weight_kg']:g} kg" if rec["recommended_weight_kg"] else ""
+            st.markdown(f"- {rec['exercise']['name']}: {rec['target_sets']} × {reps}{weight}")
+        if targets and targets["already_logged"]:
+            st.success("Logged today. Nice work! ✅")
+        else:
+            st.page_link("pages/3_Workouts.py", label="Log this workout", icon="✍️")
     st.page_link("pages/2_Program.py", label="View full program", icon="🗓️")
 
 

@@ -56,6 +56,7 @@ from app.schemas.workout import (
     WorkoutSessionCreate,
     WorkoutSessionRead,
     WorkoutSessionUpdate,
+    WorkoutTargets,
 )
 
 __all__ = [
@@ -109,4 +110,5 @@ __all__ = [
     "WorkoutSessionCreate",
     "WorkoutSessionRead",
     "WorkoutSessionUpdate",
+    "WorkoutTargets",
 ]

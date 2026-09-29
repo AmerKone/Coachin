@@ -3,7 +3,7 @@
 import uuid
 from datetime import datetime
 
-from pydantic import Field
+from pydantic import Field, model_validator
 
 from app.models.enums import EntrySource
 from app.schemas.common import CoachinSchema, ORMReadSchema, TimestampedReadSchema
@@ -40,7 +40,13 @@ class WorkoutSessionCreate(CoachinSchema):
     session_rpe: float | None = Field(default=None, ge=1, le=10)
     notes: str | None = None
     source: EntrySource = EntrySource.MANUAL
-    sets: list[ExerciseSetCreate] = Field(default_factory=list)
+    sets: list[ExerciseSetCreate] = Field(default_factory=list, max_length=200)
+
+    @model_validator(mode="after")
+    def _completed_after_start(self) -> "WorkoutSessionCreate":
+        if self.completed_at is not None and self.completed_at < self.started_at:
+            raise ValueError("completed_at must be after started_at")
+        return self
 
 
 class WorkoutSessionUpdate(CoachinSchema):
@@ -65,7 +71,14 @@ class WorkoutSessionRead(TimestampedReadSchema):
 class OverloadRecommendation(CoachinSchema):
     """Next-session target for one exercise, derived from recent performance."""
 
+    planned_exercise_id: uuid.UUID
     exercise: ExerciseSummary
+    target_sets: int
+    target_rpe: float | None
+    rest_seconds: int | None
+    notes: str | None
+    """Coach's notes from the program (form cues, injury modifications)."""
+    last_performed_at: datetime | None
     last_weight_kg: float | None
     last_reps: list[int]
     recommended_weight_kg: float | None
@@ -73,6 +86,18 @@ class OverloadRecommendation(CoachinSchema):
     recommended_reps_max: int
     rationale: str
     """Human-readable explanation, e.g. "Hit top of rep range at RPE 7 on all sets: +2.5 kg"."""
+
+
+class WorkoutTargets(CoachinSchema):
+    """A planned workout with a progressive-overload target for each exercise."""
+
+    program_workout_id: uuid.UUID
+    week_number: int
+    day_of_week: int
+    name: str
+    focus: str | None
+    already_logged: bool
+    exercises: list[OverloadRecommendation]
 
 
 class ExerciseHistoryPoint(CoachinSchema):

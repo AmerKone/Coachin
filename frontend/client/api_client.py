@@ -102,13 +102,26 @@ class CoachinClient:
 
     # Workouts
     def log_workout(self, session: dict[str, Any]) -> dict[str, Any]:
-        raise NotImplementedError
+        return self._request("POST", "/workouts", json=session)
 
-    def next_targets(self) -> list[dict[str, Any]]:
-        raise NotImplementedError
+    def list_workouts(self, limit: int = 20, offset: int = 0) -> dict[str, Any]:
+        return self._request("GET", "/workouts", params={"limit": limit, "offset": offset})
+
+    def delete_workout(self, session_id: str) -> None:
+        self._request("DELETE", f"/workouts/{session_id}")
+
+    def next_targets(self, program_workout_id: str | None = None) -> dict[str, Any] | None:
+        """Targets for a planned workout (default: the next unlogged one); None if there isn't one."""
+        params = {"program_workout_id": program_workout_id} if program_workout_id else None
+        try:
+            return self._request("GET", "/workouts/recommendations/next", params=params)
+        except ApiError as exc:
+            if exc.status_code == 404:
+                return None
+            raise
 
     def exercise_history(self, exercise_id: str, weeks: int = 12) -> list[dict[str, Any]]:
-        raise NotImplementedError
+        return self._request("GET", f"/workouts/history/{exercise_id}", params={"weeks": weeks})
 
     # Nutrition
     def estimate_meal(self, description: str, meal_type: str | None = None) -> dict[str, Any]:
