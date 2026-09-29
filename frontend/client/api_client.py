@@ -10,6 +10,8 @@ import httpx
 
 from config import API_BASE, REQUEST_TIMEOUT_SECONDS
 
+GENERATION_TIMEOUT_SECONDS = 240.0
+
 
 class ApiError(Exception):
     """Raised for non-2xx responses; carries the status code and backend `detail`."""
@@ -75,10 +77,28 @@ class CoachinClient:
 
     # Programs
     def generate_program(self, request: dict[str, Any]) -> dict[str, Any]:
-        raise NotImplementedError
+        """Ask the coach to design a program (an LLM call: can take up to a minute or two)."""
+        return self._request("POST", "/programs/generate", json=request, timeout=GENERATION_TIMEOUT_SECONDS)
+
+    def list_programs(self) -> list[dict[str, Any]]:
+        return self._request("GET", "/programs")
+
+    def get_program(self, program_id: str) -> dict[str, Any]:
+        return self._request("GET", f"/programs/{program_id}")
 
     def get_active_program(self) -> dict[str, Any] | None:
-        raise NotImplementedError
+        try:
+            return self._request("GET", "/programs/active")
+        except ApiError as exc:
+            if exc.status_code == 404:
+                return None
+            raise
+
+    def update_program(self, program_id: str, changes: dict[str, Any]) -> dict[str, Any]:
+        return self._request("PATCH", f"/programs/{program_id}", json=changes)
+
+    def delete_program(self, program_id: str) -> None:
+        self._request("DELETE", f"/programs/{program_id}")
 
     # Workouts
     def log_workout(self, session: dict[str, Any]) -> dict[str, Any]:
