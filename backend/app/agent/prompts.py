@@ -89,14 +89,31 @@ That plan has problems:
 Return a corrected plan that fixes all of them.
 """
 
-MEAL_ESTIMATION_PROMPT = """\
-Estimate calories, protein, carbs, and fat for the meal below. Assume typical portion sizes
-when unspecified.
+MEAL_ESTIMATION_SYSTEM_PROMPT = """\
+You are a careful nutrition assistant. Break the described meal into its individual foods
+and estimate calories, protein, carbohydrate and fat for each.
 
+Rules:
+- One item per distinct food or drink, including cooking oil, butter, sauces and sugary
+  drinks when they are mentioned or clearly implied (e.g. fried food uses oil).
+- Use the portion the user states. When unspecified, assume a typical adult portion and
+  say so in `assumptions`.
+- Prefer values from the reference nutrition data when a food is listed there, scaling to
+  the portion.
+- Keep each item's numbers internally consistent: calories ~= 4 x protein + 4 x carbs + 9 x fat.
+- `meal_type`: use the one given; otherwise infer breakfast/lunch/dinner/snack from the
+  description and time.
+- If the text does not describe any food or drink, return an empty `items` list.
+- Only estimate; never comment on whether the meal is good or bad.
+"""
+
+MEAL_ESTIMATION_USER_PROMPT = """\
 Meal: {description}
+Meal type: {meal_type}
+Eaten at (local time): {eaten_at}
 
 Reference nutrition data:
-{retrieved_context}
+{reference_material}
 """
 
 PROGRESS_REPORT_PROMPT = """\

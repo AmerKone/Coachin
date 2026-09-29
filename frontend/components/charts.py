@@ -70,11 +70,6 @@ def exercise_progress_chart(history: list[dict[str, Any]], exercise_name: str) -
     return fig
 
 
-def macro_vs_target_chart(summary: dict[str, Any]) -> go.Figure:
-    """Bar chart of today's calories/macros against targets."""
-    raise NotImplementedError
-
-
 def body_weight_trend_chart(metrics: list[dict[str, Any]]) -> go.Figure:
     """Body weight with a 7-day rolling average."""
     raise NotImplementedError

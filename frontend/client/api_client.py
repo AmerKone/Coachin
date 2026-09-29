@@ -68,6 +68,9 @@ class CoachinClient:
     def save_profile(self, profile: dict[str, Any]) -> dict[str, Any]:
         return self._request("PUT", "/users/me/profile", json=profile)
 
+    def update_profile(self, changes: dict[str, Any]) -> dict[str, Any]:
+        return self._request("PATCH", "/users/me/profile", json=changes)
+
     # Chat & voice
     def chat(self, message: str, conversation_id: str | None = None, speak: bool = False) -> dict[str, Any]:
         raise NotImplementedError
@@ -124,11 +127,23 @@ class CoachinClient:
         return self._request("GET", f"/workouts/history/{exercise_id}", params={"weeks": weeks})
 
     # Nutrition
-    def estimate_meal(self, description: str, meal_type: str | None = None) -> dict[str, Any]:
-        raise NotImplementedError
+    def estimate_meal(self, description: str, meal_type: str | None = None,
+                      eaten_at: str | None = None) -> dict[str, Any]:
+        """Item-by-item estimate of a described meal (an LLM call; nothing is saved)."""
+        return self._request("POST", "/nutrition/estimate", timeout=GENERATION_TIMEOUT_SECONDS, json={
+            "description": description, "meal_type": meal_type, "eaten_at": eaten_at})
 
-    def daily_nutrition(self, day: date) -> dict[str, Any]:
-        raise NotImplementedError
+    def log_meal(self, entry: dict[str, Any]) -> dict[str, Any]:
+        return self._request("POST", "/nutrition", json=entry)
+
+    def delete_meal(self, log_id: str) -> None:
+        self._request("DELETE", f"/nutrition/{log_id}")
+
+    def daily_nutrition(self, day: date, tz: str = "UTC") -> dict[str, Any]:
+        return self._request("GET", f"/nutrition/daily/{day.isoformat()}", params={"tz": tz})
+
+    def nutrition_targets(self) -> dict[str, Any]:
+        return self._request("GET", "/nutrition/targets")
 
     # Progress
     def record_metric(self, metric: dict[str, Any]) -> dict[str, Any]:
