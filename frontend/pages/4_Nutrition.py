@@ -12,7 +12,9 @@ from components.voice import record_audio  # noqa: F401
 
 
 def main() -> None:
-    raise NotImplementedError
+    require_login()
+    st.title("Nutrition")
+    st.info("Meal logging with macro estimates is coming soon.")
 
 
 main()

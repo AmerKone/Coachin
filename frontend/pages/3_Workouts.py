@@ -11,7 +11,9 @@ from components.charts import exercise_progress_chart  # noqa: F401
 
 
 def main() -> None:
-    raise NotImplementedError
+    require_login()
+    st.title("Workouts")
+    st.info("Workout logging and progressive overload are coming soon.")
 
 
 main()

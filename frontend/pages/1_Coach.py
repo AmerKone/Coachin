@@ -12,7 +12,9 @@ from components.voice import play_audio, record_audio  # noqa: F401
 
 
 def main() -> None:
-    raise NotImplementedError
+    require_login()
+    st.title("Coach")
+    st.info("Voice and text chat with your coach is coming soon.")
 
 
 main()

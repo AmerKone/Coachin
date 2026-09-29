@@ -10,7 +10,9 @@ from components.auth import require_login  # noqa: F401
 
 
 def main() -> None:
-    raise NotImplementedError
+    require_login()
+    st.title("Program")
+    st.info("Personalized weekly programs are coming soon.")
 
 
 main()

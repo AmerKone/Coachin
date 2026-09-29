@@ -20,6 +20,18 @@ class ApiError(Exception):
         self.detail = detail
 
 
+def _format_detail(detail: Any) -> str:
+    """Flatten FastAPI error details (a string, or a list of validation errors)."""
+    if isinstance(detail, list):
+        messages = []
+        for err in detail:
+            field = ".".join(str(part) for part in err.get("loc", [])[1:])  # drop "body"/"query"
+            msg = err.get("msg", "Invalid value").removeprefix("Value error, ")
+            messages.append(f"{field}: {msg}" if field else msg)
+        return "; ".join(messages)
+    return str(detail)
+
+
 class CoachinClient:
     def __init__(self, token: str | None = None) -> None:
         self.token = token
@@ -27,18 +39,32 @@ class CoachinClient:
 
     # Auth
     def register(self, email: str, password: str, full_name: str | None = None) -> dict[str, Any]:
-        raise NotImplementedError
+        return self._request("POST", "/auth/register", json={"email": email, "password": password, "full_name": full_name})
 
     def login(self, email: str, password: str) -> str:
         """Return an access token and store it on the client."""
-        raise NotImplementedError
+        data = self._request("POST", "/auth/login", data={"username": email, "password": password})
+        self.token = data["access_token"]
+        return self.token
+
+    def get_me(self) -> dict[str, Any]:
+        return self._request("GET", "/users/me")
+
+    def update_me(self, changes: dict[str, Any]) -> dict[str, Any]:
+        return self._request("PATCH", "/users/me", json=changes)
 
     # Profile
     def get_profile(self) -> dict[str, Any] | None:
-        raise NotImplementedError
+        """Return the profile, or None if the user hasn't completed onboarding."""
+        try:
+            return self._request("GET", "/users/me/profile")
+        except ApiError as exc:
+            if exc.status_code == 404:
+                return None
+            raise
 
     def save_profile(self, profile: dict[str, Any]) -> dict[str, Any]:
-        raise NotImplementedError
+        return self._request("PUT", "/users/me/profile", json=profile)
 
     # Chat & voice
     def chat(self, message: str, conversation_id: str | None = None, speak: bool = False) -> dict[str, Any]:
@@ -83,4 +109,14 @@ class CoachinClient:
 
     def _request(self, method: str, path: str, **kwargs: Any) -> Any:
         """Send a request with the bearer token; raise `ApiError` on failure, return JSON."""
-        raise NotImplementedError
+        headers = {"Authorization": f"Bearer {self.token}"} if self.token else {}
+        response = self._http.request(method, path, headers=headers, **kwargs)
+        if response.is_error:
+            try:
+                detail = _format_detail(response.json().get("detail", response.text))
+            except ValueError:
+                detail = response.text or response.reason_phrase
+            raise ApiError(response.status_code, detail)
+        if response.status_code == 204 or not response.content:
+            return None
+        return response.json()

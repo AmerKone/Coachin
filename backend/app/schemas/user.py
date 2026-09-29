@@ -1,23 +1,34 @@
 """Schemas for users, authentication, and fitness profiles."""
 
-from datetime import date
+from typing import Annotated, ClassVar
 
-from pydantic import EmailStr, Field
+from pydantic import AfterValidator, EmailStr, Field, PastDate, model_validator
 
 from app.models.enums import FitnessGoal, FitnessLevel, Sex
 from app.schemas.common import CoachinSchema, TimestampedReadSchema
+from app.services.security import BCRYPT_MAX_PASSWORD_BYTES
+
+
+def _check_password_bytes(value: str) -> str:
+    if len(value.encode()) > BCRYPT_MAX_PASSWORD_BYTES:
+        raise ValueError(f"Password must be at most {BCRYPT_MAX_PASSWORD_BYTES} bytes")
+    return value
+
+
+Password = Annotated[str, Field(min_length=8), AfterValidator(_check_password_bytes)]
+NormalizedEmail = Annotated[EmailStr, AfterValidator(str.lower)]
 
 # --- Auth ------------------------------------------------------------------
 
 
 class UserCreate(CoachinSchema):
-    email: EmailStr
-    password: str = Field(min_length=8, max_length=128)
+    email: NormalizedEmail
+    password: Password
     full_name: str | None = Field(default=None, max_length=120)
 
 
 class LoginRequest(CoachinSchema):
-    email: EmailStr
+    email: NormalizedEmail
     password: str
 
 
@@ -34,14 +45,14 @@ class UserRead(TimestampedReadSchema):
 
 class UserUpdate(CoachinSchema):
     full_name: str | None = Field(default=None, max_length=120)
-    password: str | None = Field(default=None, min_length=8, max_length=128)
+    password: Password | None = None
 
 
 # --- Profile ---------------------------------------------------------------
 
 
 class UserProfileBase(CoachinSchema):
-    date_of_birth: date | None = None
+    date_of_birth: PastDate | None = None
     sex: Sex | None = None
     height_cm: float | None = Field(default=None, gt=50, lt=300)
     weight_kg: float | None = Field(default=None, gt=20, lt=400)
@@ -72,7 +83,17 @@ class UserProfileCreate(UserProfileBase):
 class UserProfileUpdate(CoachinSchema):
     """Partial update; only provided fields are changed."""
 
-    date_of_birth: date | None = None
+    NON_NULLABLE_FIELDS: ClassVar[frozenset[str]] = frozenset({
+        "fitness_level",
+        "primary_goal",
+        "training_days_per_week",
+        "session_duration_min",
+        "available_equipment",
+        "medical_clearance",
+        "dietary_preferences",
+    })
+
+    date_of_birth: PastDate | None = None
     sex: Sex | None = None
     height_cm: float | None = Field(default=None, gt=50, lt=300)
     weight_kg: float | None = Field(default=None, gt=20, lt=400)
@@ -90,6 +111,17 @@ class UserProfileUpdate(CoachinSchema):
     daily_carbs_target_g: int | None = Field(default=None, ge=0)
     daily_fat_target_g: int | None = Field(default=None, ge=0)
     preferred_tts_voice: str | None = None
+
+    @model_validator(mode="after")
+    def _reject_null_for_required_columns(self) -> "UserProfileUpdate":
+        nulled = sorted(
+            name
+            for name in self.model_fields_set & self.NON_NULLABLE_FIELDS
+            if getattr(self, name) is None
+        )
+        if nulled:
+            raise ValueError(f"These fields cannot be null: {', '.join(nulled)}")
+        return self
 
 
 class UserProfileRead(TimestampedReadSchema, UserProfileBase):

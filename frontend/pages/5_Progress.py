@@ -10,7 +10,9 @@ from components.charts import body_weight_trend_chart  # noqa: F401
 
 
 def main() -> None:
-    raise NotImplementedError
+    require_login()
+    st.title("Progress")
+    st.info("Body metrics and monthly progress reports are coming soon.")
 
 
 main()
