@@ -15,13 +15,20 @@ import uuid
 from datetime import date
 from typing import Any, Literal
 
+from langchain_core.documents import Document
 from pydantic import BaseModel, create_model
 from sqlalchemy import select, update
 from sqlalchemy.orm import Session, selectinload
 
-from app.agent.prompts import PROGRAM_FIX_PROMPT, PROGRAM_SYSTEM_PROMPT, PROGRAM_USER_PROMPT
+from app.agent.prompts import (
+    NO_REFERENCE_MATERIAL,
+    PROGRAM_FIX_PROMPT,
+    PROGRAM_SYSTEM_PROMPT,
+    PROGRAM_USER_PROMPT,
+)
 from app.models import Exercise, PlannedExercise, ProgramWorkout, TrainingProgram, User, UserProfile
 from app.models.enums import FitnessLevel, ProgramStatus
+from app.rag.retriever import KnowledgeRetriever
 from app.schemas import ProgramGenerateRequest, ProgramUpdate
 from app.services import llm_client
 from app.services.exercise_service import search_exercises
@@ -166,10 +173,35 @@ def describe_exercises(exercises: list[Exercise]) -> str:
 # --- Service --------------------------------------------------------------
 
 
+def retrieve_guidance(
+    retriever: KnowledgeRetriever, profile: UserProfile, goal: str, days_per_week: int
+) -> list[Document]:
+    """Knowledge-base passages relevant to this program: programming guidance for the goal
+    and level, plus safety guidance when the user reported injuries or conditions."""
+    equipment = ", ".join(profile.available_equipment) or "bodyweight only"
+    docs = retriever.retrieve(
+        f"How to design a {goal.replace('_', ' ')} training program for a {profile.fitness_level} "
+        f"lifter training {days_per_week} days per week with {equipment}: volume, rep ranges, "
+        "progression and deloads",
+        topics=["exercise_science"],
+    )
+    concerns = "; ".join(filter(None, [profile.injuries, profile.medical_conditions]))
+    if concerns:
+        docs += retriever.retrieve(f"Training safely with: {concerns}", topics=["safety"])
+
+    unique: dict[str, Document] = {}
+    for doc in docs:
+        unique.setdefault(doc.metadata.get("chunk_id", doc.page_content), doc)
+    return list(unique.values())
+
+
 class ProgramService:
-    def __init__(self, db: Session, llm: StructuredLLM | None = None) -> None:
+    def __init__(
+        self, db: Session, llm: StructuredLLM | None = None, retriever: KnowledgeRetriever | None = None
+    ) -> None:
         self.db = db
         self.llm = llm or llm_client.complete_structured
+        self.retriever = retriever or KnowledgeRetriever()
 
     # Generation
 
@@ -189,6 +221,7 @@ class ProgramService:
 
         candidates, _ = search_exercises(self.db, equipment=profile.available_equipment, limit=1000)
         by_name = {e.name: e for e in candidates}
+        guidance = retrieve_guidance(self.retriever, profile, goal, days_per_week)
 
         user_prompt = PROGRAM_USER_PROMPT.format(
             profile=describe_profile(profile, today),
@@ -197,6 +230,7 @@ class ProgramService:
             goal=goal,
             duration_weeks=request.duration_weeks,
             extra_instructions=request.extra_instructions or "none",
+            reference_material=KnowledgeRetriever.format_context(guidance) or NO_REFERENCE_MATERIAL,
             exercise_list=describe_exercises(candidates),
         )
         plan = self._request_plan(user_prompt, list(by_name), days_per_week)

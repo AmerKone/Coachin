@@ -85,3 +85,18 @@ def auth_headers(client: TestClient, registered_user: dict) -> dict[str, str]:
     )
     assert response.status_code == 200, response.text
     return {"Authorization": f"Bearer {response.json()['access_token']}"}
+
+
+def clear_exercise_library(db: Session) -> None:
+    """Empty the exercises table for an isolated test, inside the test's rolled-back transaction.
+
+    Rows referencing exercises (planned exercises, logged sets) are removed first; the outer
+    rollback restores everything, so real data in the database is never lost.
+    """
+    from sqlalchemy import delete
+
+    from app.models import Exercise, ExerciseSet, PlannedExercise
+
+    db.execute(delete(ExerciseSet))
+    db.execute(delete(PlannedExercise))
+    db.execute(delete(Exercise))

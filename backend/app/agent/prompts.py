@@ -73,9 +73,15 @@ Requested: {days_per_week} training days per week, about {session_minutes} minut
 primary goal {goal}, program length {duration_weeks} weeks.
 Additional instructions from the user: {extra_instructions}
 
+Reference material from the Coachin knowledge base (follow it where relevant; the safety
+rules above still take priority):
+{reference_material}
+
 Available exercises (name | primary muscle | category | equipment | caution):
 {exercise_list}
 """
+
+NO_REFERENCE_MATERIAL = "None available; rely on the programming guidelines above."
 
 PROGRAM_FIX_PROMPT = """\
 That plan has problems:

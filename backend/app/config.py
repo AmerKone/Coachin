@@ -40,6 +40,8 @@ class Settings(BaseSettings):
     pinecone_api_key: str
     pinecone_index_name: str = "coachin-knowledge"
     pinecone_namespace: str = "default"
+    pinecone_cloud: str = "aws"
+    pinecone_region: str = "us-east-1"  # the region available on Pinecone's free plan
     embedding_dimensions: int = 1536
 
 

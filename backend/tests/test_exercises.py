@@ -11,6 +11,7 @@ from app.models import Exercise
 from app.models.enums import Equipment, ExerciseCategory, MuscleGroup
 from app.schemas import ExerciseCreate
 from app.services.exercise_service import read_exercise_file, search_exercises, upsert_exercises
+from tests.conftest import clear_exercise_library
 
 EXERCISES = "/api/v1/exercises"
 
@@ -59,7 +60,7 @@ def test_data_file_covers_every_muscle_group_category_and_equipment() -> None:
 @pytest.fixture
 def empty_library(db: Session) -> None:
     """Start from an empty exercises table so seeded data can't affect results (rolled back after)."""
-    db.execute(Exercise.__table__.delete())
+    clear_exercise_library(db)
 
 
 def exercise_count(db: Session) -> int:

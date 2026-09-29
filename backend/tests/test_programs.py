@@ -5,12 +5,14 @@ from typing import Any
 
 import pytest
 from fastapi.testclient import TestClient
+from langchain_core.documents import Document
 from pydantic import ValidationError
 from sqlalchemy.orm import Session
 
 from app.api.routes.programs import get_program_service
 from app.main import app
 from app.models import Exercise
+from app.rag.retriever import KnowledgeRetriever
 from app.schemas import ExerciseCreate
 from app.services.exercise_service import upsert_exercises
 from app.services.llm_client import LLMError
@@ -20,6 +22,7 @@ from app.services.program_service import (
     validate_plan,
     week_prescription,
 )
+from tests.conftest import clear_exercise_library
 
 PROGRAMS = "/api/v1/programs"
 PROFILE = "/api/v1/users/me/profile"
@@ -73,7 +76,7 @@ class FakeLLM:
 
 @pytest.fixture
 def library(db: Session) -> None:
-    db.execute(Exercise.__table__.delete())  # rolled back after the test
+    clear_exercise_library(db)  # rolled back after the test
     upsert_exercises(db, LIBRARY)
 
 
@@ -87,11 +90,34 @@ def profile(client: TestClient, auth_headers: dict) -> dict:
     return response.json()
 
 
+class FakeStore:
+    """Stands in for Pinecone: returns canned (document, score) pairs per topic and records queries."""
+
+    def __init__(self, docs_by_topic: dict[str, list[tuple[Document, float]]] | None = None) -> None:
+        self.docs_by_topic = docs_by_topic or {}
+        self.queries: list[tuple[str, dict | None]] = []
+
+    def similarity_search_with_score(self, query, k=4, filter=None):
+        self.queries.append((query, filter))
+        topics = filter["topic"]["$in"] if filter else list(self.docs_by_topic)
+        return [pair for topic in topics for pair in self.docs_by_topic.get(topic, [])][:k]
+
+
+def kb_doc(text: str, topic: str, chunk_id: str) -> Document:
+    return Document(page_content=text, metadata={"topic": topic, "chunk_id": chunk_id, "section": chunk_id})
+
+
 @pytest.fixture
-def use_llm(db: Session):
-    """Call with a FakeLLM to route program generation through it."""
+def store() -> FakeStore:
+    return FakeStore()
+
+
+@pytest.fixture
+def use_llm(db: Session, store: FakeStore):
+    """Call with a FakeLLM to route program generation through it (and the fake knowledge base)."""
     def install(fake: FakeLLM) -> FakeLLM:
-        app.dependency_overrides[get_program_service] = lambda: ProgramService(db, llm=fake)
+        retriever = KnowledgeRetriever(store=store)
+        app.dependency_overrides[get_program_service] = lambda: ProgramService(db, llm=fake, retriever=retriever)
         return fake
     yield install
     app.dependency_overrides.pop(get_program_service, None)
@@ -253,3 +279,46 @@ def test_programs_are_private(client, auth_headers, library, profile, use_llm) -
     assert client.patch(f"{PROGRAMS}/{program['id']}", json={"name": "mine"}, headers=other).status_code == 404
     assert client.delete(f"{PROGRAMS}/{program['id']}", headers=other).status_code == 404
     assert client.get(PROGRAMS, headers=other).json() == []
+
+
+# --- Knowledge-base grounding ---------------------------------------------
+
+
+def test_generation_prompt_includes_retrieved_guidance(client, auth_headers, library, profile, store, use_llm) -> None:
+    store.docs_by_topic = {
+        "exercise_science": [
+            (kb_doc("Beginners: 2-3 full-body sessions per week.", "exercise_science", "a#0000"), 0.82),
+            (kb_doc("Barely related text.", "exercise_science", "a#0001"), 0.12),  # below threshold
+        ],
+        "safety": [(kb_doc("Wrist pain: use push-up handles.", "safety", "s#0000"), 0.74)],
+    }
+    fake = use_llm(FakeLLM(VALID_PLAN))
+    assert generate(client, auth_headers).status_code == 201
+
+    prompt = fake.calls[0][0][1]["content"]
+    assert "Beginners: 2-3 full-body sessions per week." in prompt
+    assert "Wrist pain: use push-up handles." in prompt  # profile reports a sore wrist
+    assert "Barely related text." not in prompt
+
+    (program_query, program_filter), (safety_query, safety_filter) = store.queries
+    assert program_filter == {"topic": {"$in": ["exercise_science"]}}
+    assert "general fitness" in program_query and "beginner" in program_query
+    assert safety_filter == {"topic": {"$in": ["safety"]}}
+    assert "Sore left wrist" in safety_query
+
+
+def test_no_safety_lookup_without_reported_concerns(client, auth_headers, library, store, use_llm) -> None:
+    client.put(PROFILE, headers=auth_headers, json={"available_equipment": ["dumbbells", "bench"]})
+    use_llm(FakeLLM(VALID_PLAN))
+    assert generate(client, auth_headers).status_code == 201
+    assert [f["topic"]["$in"] for _, f in store.queries] == [["exercise_science"]]
+
+
+def test_generation_works_when_knowledge_base_is_down(client, auth_headers, library, profile, store, use_llm) -> None:
+    def broken(*args, **kwargs):
+        raise ConnectionError("Pinecone unreachable")
+
+    store.similarity_search_with_score = broken
+    fake = use_llm(FakeLLM(VALID_PLAN))
+    assert generate(client, auth_headers).status_code == 201
+    assert "None available; rely on the programming guidelines above." in fake.calls[0][0][1]["content"]
