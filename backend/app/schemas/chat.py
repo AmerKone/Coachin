@@ -2,8 +2,9 @@
 
 import uuid
 from datetime import datetime
+from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
-from pydantic import Field
+from pydantic import Field, field_validator
 
 from app.models.enums import MessageRole, SafetyAction, SafetyCategory, SafetySeverity
 from app.schemas.common import CoachinSchema, TimestampedReadSchema
@@ -17,6 +18,17 @@ class ChatRequest(CoachinSchema):
     """Omit to start a new conversation."""
     speak_response: bool = False
     """If true, the response also includes synthesized audio."""
+    timezone: str = Field(default="UTC", max_length=64)
+    """IANA timezone of the user, so "today" means their calendar day."""
+
+    @field_validator("timezone")
+    @classmethod
+    def _known_timezone(cls, value: str) -> str:
+        try:
+            ZoneInfo(value)
+        except (ZoneInfoNotFoundError, ValueError):
+            raise ValueError(f"Unknown timezone: {value!r}") from None
+        return value
 
 
 class MessageRead(TimestampedReadSchema):

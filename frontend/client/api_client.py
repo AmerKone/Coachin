@@ -72,11 +72,27 @@ class CoachinClient:
         return self._request("PATCH", "/users/me/profile", json=changes)
 
     # Chat & voice
-    def chat(self, message: str, conversation_id: str | None = None, speak: bool = False) -> dict[str, Any]:
-        raise NotImplementedError
+    def chat(self, message: str, conversation_id: str | None = None, speak: bool = False,
+             timezone: str = "UTC") -> dict[str, Any]:
+        return self._request("POST", "/chat", timeout=GENERATION_TIMEOUT_SECONDS, json={
+            "message": message, "conversation_id": conversation_id, "speak_response": speak, "timezone": timezone})
 
-    def voice_chat(self, audio_bytes: bytes, filename: str, conversation_id: str | None = None) -> dict[str, Any]:
-        raise NotImplementedError
+    def voice_chat(self, audio_bytes: bytes, filename: str, conversation_id: str | None = None,
+                   speak: bool = True, timezone: str = "UTC") -> dict[str, Any]:
+        data = {"speak_response": str(speak).lower(), "timezone": timezone}
+        if conversation_id:
+            data["conversation_id"] = conversation_id
+        return self._request("POST", "/voice/chat", timeout=GENERATION_TIMEOUT_SECONDS, data=data,
+                             files={"audio": (filename, audio_bytes, "audio/wav")})
+
+    def list_conversations(self) -> list[dict[str, Any]]:
+        return self._request("GET", "/chat/conversations")
+
+    def get_conversation(self, conversation_id: str) -> dict[str, Any]:
+        return self._request("GET", f"/chat/conversations/{conversation_id}")
+
+    def delete_conversation(self, conversation_id: str) -> None:
+        self._request("DELETE", f"/chat/conversations/{conversation_id}")
 
     # Programs
     def generate_program(self, request: dict[str, Any]) -> dict[str, Any]:

@@ -101,3 +101,20 @@ def search_exercises(
     total = db.scalar(select(func.count()).select_from(stmt.subquery())) or 0
     items = db.scalars(stmt.order_by(Exercise.name).limit(limit).offset(offset)).all()
     return list(items), total
+
+
+def find_exercise(db: Session, name: str) -> tuple[Exercise | None, list[str]]:
+    """Resolve a spoken/typed exercise name: exact (case-insensitive) match first, then a
+    unique match containing every word. Returns (exercise, []) or (None, candidate names)."""
+    cleaned = " ".join(name.split())
+    exact = db.scalar(select(Exercise).where(func.lower(Exercise.name) == cleaned.lower()))
+    if exact is not None:
+        return exact, []
+    stmt = select(Exercise)
+    for word in cleaned.split():
+        escaped = word.replace("\\", "\\\\").replace("%", "\%").replace("_", "\_")
+        stmt = stmt.where(Exercise.name.ilike(f"%{escaped}%", escape="\\"))
+    matches = list(db.scalars(stmt.order_by(func.length(Exercise.name)).limit(6)))
+    if len(matches) == 1:
+        return matches[0], []
+    return None, [m.name for m in matches]

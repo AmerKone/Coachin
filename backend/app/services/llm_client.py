@@ -1,6 +1,7 @@
 """Thin wrapper around the OpenAI SDK shared by all services."""
 
 from collections.abc import Callable
+from dataclasses import dataclass, field
 from functools import lru_cache
 from typing import Any, TypeVar
 
@@ -22,6 +23,26 @@ _TRANSIENT_ERRORS = (openai.APIConnectionError, openai.APITimeoutError, openai.R
 
 class LLMError(Exception):
     """The LLM call failed or returned an unusable response."""
+
+
+@dataclass(frozen=True)
+class ToolCall:
+    id: str
+    name: str
+    arguments: str
+    """Raw JSON string of arguments, as produced by the model."""
+
+
+@dataclass(frozen=True)
+class LLMReply:
+    """Provider-neutral assistant turn: text and/or requested tool calls."""
+
+    content: str | None
+    tool_calls: list[ToolCall] = field(default_factory=list)
+
+
+ToolLLM = Callable[[list[dict[str, Any]], list[dict[str, Any]]], LLMReply]
+"""Signature of `chat_with_tools`; the agent accepts one so tests can inject a fake."""
 
 
 @lru_cache
@@ -50,6 +71,22 @@ def complete(
     return get_openai_client().chat.completions.create(
         model=get_settings().openai_chat_model, messages=messages, temperature=temperature, **kwargs
     )
+
+
+def chat_with_tools(messages: list[dict[str, Any]], tools: list[dict[str, Any]]) -> LLMReply:
+    """One chat turn where the model may answer or request tool calls.
+
+    Raises:
+        LLMError: API failure after retries.
+    """
+    try:
+        response = complete(messages, tools=tools, temperature=0.5)
+    except openai.OpenAIError as exc:
+        raise LLMError(f"OpenAI request failed: {exc}") from exc
+    message = response.choices[0].message
+    calls = [ToolCall(id=c.id, name=c.function.name, arguments=c.function.arguments or "{}")
+             for c in (message.tool_calls or []) if c.type == "function"]
+    return LLMReply(content=message.content, tool_calls=calls)
 
 
 def complete_structured(messages: list[dict[str, Any]], schema: type[M]) -> M:
