@@ -163,13 +163,26 @@ class CoachinClient:
 
     # Progress
     def record_metric(self, metric: dict[str, Any]) -> dict[str, Any]:
-        raise NotImplementedError
+        return self._request("POST", "/progress/metrics", json=metric)
+
+    def progress_overview(self, start: date, end: date, tz: str = "UTC") -> dict[str, Any]:
+        return self._request("GET", "/progress/overview",
+                             params={"start": start.isoformat(), "end": end.isoformat(), "tz": tz})
 
     def list_reports(self) -> list[dict[str, Any]]:
-        raise NotImplementedError
+        return self._request("GET", "/progress/reports")
 
-    def generate_report(self, period_start: date | None = None, period_end: date | None = None) -> dict[str, Any]:
-        raise NotImplementedError
+    def get_report(self, report_id: str) -> dict[str, Any]:
+        return self._request("GET", f"/progress/reports/{report_id}")
+
+    def generate_report(self, period_start: date | None = None, period_end: date | None = None,
+                        tz: str = "UTC") -> dict[str, Any]:
+        """Have the coach write a report for the period (an LLM call)."""
+        return self._request("POST", "/progress/reports", timeout=GENERATION_TIMEOUT_SECONDS, json={
+            "period_start": period_start.isoformat() if period_start else None,
+            "period_end": period_end.isoformat() if period_end else None,
+            "timezone": tz,
+        })
 
     def _request(self, method: str, path: str, **kwargs: Any) -> Any:
         """Send a request with the bearer token; raise `ApiError` on failure, return JSON."""

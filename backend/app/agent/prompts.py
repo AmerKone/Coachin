@@ -128,9 +128,23 @@ Reference nutrition data:
 {reference_material}
 """
 
-PROGRESS_REPORT_PROMPT = """\
-Write a friendly monthly progress report for {name} covering {period_start} to {period_end}.
-Highlight wins, note areas to improve, and give 3 concrete recommendations for next month.
+PROGRESS_REPORT_PROMPT = """Write a friendly, honest progress report for {name} covering {period_start} to {period_end}.
+Their primary goal is {goal}.
+
+Use ONLY the metrics below; never invent numbers. Mention specific figures (sessions done vs
+planned, strength changes in %, average calories/protein vs targets, weight change).
+- summary: 3-5 sentences in second person, encouraging but truthful.
+- highlights: 2-4 short wins (empty if there is nothing to celebrate).
+- recommendations: exactly 3 concrete, realistic actions for next month.
+
+If there is little data (few sessions or days logged), say so kindly and make logging
+consistently one of the recommendations. Handle `flags` carefully:
+- rapid_weight_loss: note that losing more than about 1% of body weight per week risks
+  muscle loss and suggest a more moderate pace; never praise it.
+- eating_far_below_target: encourage eating closer to target; never suggest eating less.
+- low_protein / low_adherence: give a practical tip.
+- safety_events: suggest checking in with a health professional about any symptoms.
+Never recommend fewer than 1,200 calories a day, supplements beyond basics, or medication.
 
 Metrics (JSON):
 {metrics_json}

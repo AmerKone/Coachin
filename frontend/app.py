@@ -55,7 +55,7 @@ def main() -> None:
     render_today(client)
     st.divider()
     render_nutrition(client)
-    st.caption("Monthly progress reports will appear here as that feature is built.")
+    st.page_link("pages/5_Progress.py", label="See your progress curves and monthly report", icon="📈")
     st.page_link("pages/6_Profile.py", label="Edit profile", icon="📝")
     render_disclaimer()
 

@@ -16,6 +16,7 @@ from app.api.routes.chat import get_chat_service
 from app.api.routes.voice import get_voice_service
 from app.main import app
 from app.models import (
+    Conversation,
     Exercise,
     ExerciseSet,
     Message,
@@ -338,7 +339,8 @@ def test_llm_outage_keeps_user_message(client: TestClient, auth_headers, user, f
     fakes["agent_llm"].replies = [LLMError("timeout")]
     response = client.post(CHAT, headers=auth_headers, json={"message": "what's my workout?"})
     assert response.status_code == 502
-    assert db.scalar(select(func.count()).select_from(Message)) == 1
+    kept = db.scalars(select(Message).join(Conversation).where(Conversation.user_id == user.id)).all()
+    assert [m.content for m in kept] == ["what's my workout?"]
 
 
 def test_chat_validation_and_privacy(client: TestClient, auth_headers, user, fakes) -> None:
