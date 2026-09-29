@@ -22,3 +22,7 @@ Thumbs.db
 # Generated audio
 *.mp3
 *.wav
+
+# Local-only files (kept on this machine, not in the repository)
+docs/PROJECT_OVERVIEW.md
+scripts/seed_demo_user.py
