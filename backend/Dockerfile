@@ -1,4 +1,4 @@
-﻿# Coachin backend: FastAPI + setup scripts. Build from the repository root:
+# Coachin backend: FastAPI + setup scripts. Build from the repository root:
 #   docker build -f backend/Dockerfile -t coachin-backend .
 FROM python:3.13-slim
 

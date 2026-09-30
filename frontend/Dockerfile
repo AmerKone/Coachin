@@ -1,4 +1,4 @@
-﻿# Coachin frontend: Streamlit. Build from the repository root:
+# Coachin frontend: Streamlit. Build from the repository root:
 #   docker build -f frontend/Dockerfile -t coachin-frontend .
 FROM python:3.13-slim
 
