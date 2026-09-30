@@ -1,0 +1,31 @@
+# Keep secrets, local environments and history out of the build context and images.
+.env
+.env.*
+!.env.example
+.venv/
+venv/
+.git/
+.gitignore
+.gitattributes
+
+# Python / tooling caches
+**/__pycache__/
+**/*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# Editors / OS
+.vscode/
+.idea/
+**/.DS_Store
+**/Thumbs.db
+
+# Not needed at runtime
+backend/tests/
+docs/
+scripts/seed_demo_user.py
+*.mp3
+*.wav

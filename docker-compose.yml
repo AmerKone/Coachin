@@ -1,0 +1,55 @@
+# Coachin: PostgreSQL + FastAPI backend + Streamlit frontend.
+#
+#   docker compose up --build        # then open http://localhost:8501
+#
+# API keys (OpenAI, Pinecone) and JWT_SECRET_KEY come from .env at runtime; they are never
+# copied into the images. DATABASE_URL is overridden here to point at the `db` service.
+
+services:
+  db:
+    image: postgres:18
+    environment:
+      POSTGRES_USER: coachin
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-coachin}
+      POSTGRES_DB: coachin
+    volumes:
+      - pgdata:/var/lib/postgresql        # PostgreSQL 18+ images keep data under this path
+    ports:
+      - "127.0.0.1:${DB_PORT:-5433}:5432" # localhost only; 5433 avoids clashing with a local PostgreSQL
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U coachin -d coachin"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    restart: unless-stopped
+
+  backend:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    env_file: .env
+    environment:
+      DATABASE_URL: postgresql+psycopg://coachin:${POSTGRES_PASSWORD:-coachin}@db:5432/coachin
+      BACKEND_CORS_ORIGINS: '["http://localhost:${FRONTEND_PORT:-8501}"]'
+    depends_on:
+      db:
+        condition: service_healthy
+    ports:
+      - "${BACKEND_PORT:-8000}:8000"     # API docs at http://localhost:8000/docs
+    restart: unless-stopped
+
+  frontend:
+    build:
+      context: .
+      dockerfile: frontend/Dockerfile
+    environment:
+      BACKEND_URL: http://backend:8000   # service-to-service over the compose network
+    depends_on:
+      backend:
+        condition: service_healthy
+    ports:
+      - "${FRONTEND_PORT:-8501}:8501"
+    restart: unless-stopped
+
+volumes:
+  pgdata:
