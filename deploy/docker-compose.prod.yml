@@ -1,0 +1,65 @@
+# Coachin production stack on a single server (EC2): pre-built images from GHCR + Caddy (HTTPS).
+#
+# Run from the repository root on the server:
+#   docker compose --env-file .env -f deploy/docker-compose.prod.yml pull
+#   docker compose --env-file .env -f deploy/docker-compose.prod.yml up -d
+#
+# Only Caddy is published (80/443). The backend, frontend and database are reachable only on
+# the internal compose network. .env on the server provides the API keys, JWT_SECRET_KEY,
+# POSTGRES_PASSWORD and DOMAIN; it is never committed.
+
+services:
+  db:
+    image: postgres:18
+    environment:
+      POSTGRES_USER: coachin
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}
+      POSTGRES_DB: coachin
+    volumes:
+      - pgdata:/var/lib/postgresql        # PostgreSQL 18+ images keep data under this path
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U coachin -d coachin"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    restart: unless-stopped
+
+  backend:
+    image: ghcr.io/amerkone/coachin-backend:latest
+    env_file: ../.env
+    environment:
+      DATABASE_URL: postgresql+psycopg://coachin:${POSTGRES_PASSWORD}@db:5432/coachin
+      BACKEND_CORS_ORIGINS: '["https://${DOMAIN}"]'
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: unless-stopped
+
+  frontend:
+    image: ghcr.io/amerkone/coachin-frontend:latest
+    environment:
+      BACKEND_URL: http://backend:8000
+    depends_on:
+      backend:
+        condition: service_healthy
+    restart: unless-stopped
+
+  caddy:
+    image: caddy:2
+    ports:
+      - "80:80"
+      - "443:443"
+    environment:
+      DOMAIN: ${DOMAIN:?set DOMAIN in .env}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data                  # certificates: keep, or Let's Encrypt rate limits apply
+      - caddy_config:/config
+    depends_on:
+      - frontend
+    restart: unless-stopped
+
+volumes:
+  pgdata:
+  caddy_data:
+  caddy_config:
