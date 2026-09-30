@@ -138,6 +138,14 @@ def main() -> None:
 
     if profile is None:
         st.info("Welcome! Tell your coach about yourself so your training can be personalized.")
+    elif notice := profile.get("safety_notice"):
+        # The backend screens the health answers on every read and save.
+        if notice["action_taken"] == "blocked":
+            st.error(notice["message"], icon="🚨")
+        elif notice["action_taken"] == "referred":
+            st.warning(notice["message"], icon="🩺")
+        else:
+            st.info(notice["message"], icon="🩺")
 
     payload = render_form(profile or {})
     if payload is not None:

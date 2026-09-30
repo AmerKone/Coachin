@@ -26,6 +26,7 @@ from app.schemas import (
 )
 from app.services import llm_client
 from app.services.llm_client import LLMError, StructuredLLM
+from app.services.safety_service import has_eating_disorder_history
 
 KCAL_PER_G = {"protein": 4, "carbs": 4, "fat": 9}
 MIN_CALORIES = {Sex.FEMALE: 1200}
@@ -137,7 +138,11 @@ def suggest_targets(profile: UserProfile, today: date | None = None) -> tuple[Ma
     goal = profile.primary_goal
     notes = [f"Estimated maintenance ≈ {tdee:.0f} kcal (BMR {bmr:.0f} × activity {factor})."]
     if goal == FitnessGoal.FAT_LOSS:
-        if age < 18 or bmi < 18.5:
+        if has_eating_disorder_history(profile):
+            calories = tdee
+            notes.append("No calorie deficit is suggested because your profile mentions an eating "
+                         "disorder; please plan weight goals with a doctor or dietitian.")
+        elif age < 18 or bmi < 18.5:
             calories = tdee
             notes.append("No calorie deficit is suggested for under-18s or a BMI under 18.5; "
                          "talk to a doctor or dietitian about weight goals.")

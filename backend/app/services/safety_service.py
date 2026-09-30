@@ -176,6 +176,116 @@ def low_calorie_recommendations(text: str) -> list[int]:
     return values
 
 
+# --- Profile (onboarding) screening -----------------------------------------------------------
+
+@dataclass(frozen=True)
+class ProfileRule:
+    category: SafetyCategory
+    severity: SafetySeverity
+    label: str
+    patterns: tuple[str, ...]
+
+
+# Conditions for which exercise guidance (PAR-Q+ style) recommends medical clearance before
+# training hard. Ordered most severe first.
+PROFILE_RULES: tuple[ProfileRule, ...] = (
+    ProfileRule(SafetyCategory.CARDIOVASCULAR, SafetySeverity.HIGH, "a heart condition", (
+        r"\bheart\s+(?:disease|failure|condition|problems?|attack|surgery|valve)",
+        r"\bcardi(?:ac|omyopathy)", r"\barrh?ythmi", r"\batrial\s+fibrillation", r"\bafib\b",
+        r"\bangina\b", r"\bpacemaker", r"\bbypass\s+surgery", r"\bstents?\b",
+    )),
+    ProfileRule(SafetyCategory.CARDIOVASCULAR, SafetySeverity.HIGH, "a stroke", (r"\bstroke\b", r"\btia\b")),
+    ProfileRule(SafetyCategory.CARDIOVASCULAR, SafetySeverity.HIGH, "uncontrolled blood pressure", (
+        r"\b(?:uncontrolled|very\s+high|severe)\s+(?:blood\s+pressure|hypertension)",
+    )),
+    ProfileRule(SafetyCategory.EATING_DISORDER, SafetySeverity.HIGH, "an eating disorder", (
+        r"\banorexi", r"\bbulimi", r"\beating\s+disorder", r"\bbinge[-\s]eating",
+    )),
+    ProfileRule(SafetyCategory.MEDICAL_CONDITION, SafetySeverity.HIGH, "kidney disease", (
+        r"\bkidney\s+(?:disease|failure)", r"\brenal\s+failure", r"\bdialysis",
+    )),
+    ProfileRule(SafetyCategory.MEDICAL_CONDITION, SafetySeverity.MEDIUM, "recent surgery", (
+        r"\brecent(?:ly)?\s+(?:had\s+)?(?:an?\s+)?(?:surgery|operation)", r"\bpost[-\s]?op\b",
+        r"\b(?:surgery|operation)\s+(?:last|this)\s+(?:week|month)",
+    )),
+    ProfileRule(SafetyCategory.PREGNANCY, SafetySeverity.MEDIUM, "pregnancy", (r"\bpregnan",)),
+    ProfileRule(SafetyCategory.MEDICAL_CONDITION, SafetySeverity.MEDIUM, "insulin-treated diabetes", (
+        r"\binsulin\b", r"\btype\s*1\s+diabetes", r"\bt1d\b",
+    )),
+    ProfileRule(SafetyCategory.MEDICAL_CONDITION, SafetySeverity.MEDIUM, "epilepsy or seizures", (
+        r"\bepilep", r"\bseizures?\b",
+    )),
+)
+_PROFILE_COMPILED = [(rule, [re.compile(p, re.IGNORECASE) for p in rule.patterns]) for rule in PROFILE_RULES]
+
+CLEARANCE_SEVERITIES = {SafetySeverity.MEDIUM, SafetySeverity.HIGH, SafetySeverity.CRITICAL}
+
+
+def screen_profile_text(injuries: str | None, medical_conditions: str | None,
+                        medical_clearance: bool = False) -> SafetyAssessment:
+    """Deterministic screen of the health answers given at onboarding (no LLM).
+
+    Current red-flag symptoms (e.g. chest pain, fainting) are CRITICAL; conditions that call for
+    medical clearance are HIGH or MEDIUM. Unflagged text returns `is_flagged=False`. When the
+    user has confirmed doctor clearance, the assessment is LOGGED rather than acted on.
+    """
+    text = " ".join(filter(None, [injuries, medical_conditions]))
+    if not text.strip():
+        return SafetyAssessment(is_flagged=False)
+
+    if (symptom := check_red_flags(text)) is not None and symptom.severity == SafetySeverity.CRITICAL:
+        message = ("Your profile mentions symptoms such as chest pain, fainting or breathing problems. "
+                   "Please see a doctor before training. Until you confirm a doctor has cleared you "
+                   "for exercise, Coachin won't generate a training program.")
+        assessment = symptom.model_copy(update={"recommended_action": SafetyAction.BLOCKED,
+                                                "user_facing_message": message})
+    else:
+        match = next(((rule, m) for rule, patterns in _PROFILE_COMPILED for p in patterns
+                      if (m := p.search(text))), None)
+        if match is None:
+            return SafetyAssessment(is_flagged=False)
+        rule, found = match
+        message = (f"You mentioned {rule.label}. Please check with your doctor before training hard. "
+                   "Until you confirm a doctor has cleared you for exercise, Coachin keeps your "
+                   "program at a moderate effort (RPE 7 or below)"
+                   + (" and won't suggest a calorie deficit" if rule.category == SafetyCategory.EATING_DISORDER
+                      else "") + ".")
+        assessment = SafetyAssessment(
+            is_flagged=True, category=rule.category, severity=rule.severity,
+            recommended_action=SafetyAction.REFERRED,
+            rationale=f"Profile mentions {rule.label}: {found.group(0)!r}", user_facing_message=message,
+        )
+    if medical_clearance:
+        return assessment.model_copy(update={
+            "recommended_action": SafetyAction.LOGGED,
+            "user_facing_message": "Noted: you've confirmed a doctor has cleared you for exercise. "
+                                   "Stop and seek help if you notice any warning symptoms.",
+        })
+    return assessment
+
+
+def needs_clearance(profile: UserProfile | None) -> bool:
+    """True when the profile's health answers call for clearance the user hasn't confirmed."""
+    if profile is None or profile.medical_clearance:
+        return False
+    screen = screen_profile_text(profile.injuries, profile.medical_conditions)
+    return screen.is_flagged and screen.severity in CLEARANCE_SEVERITIES
+
+
+def blocks_program_generation(profile: UserProfile | None) -> bool:
+    """Current red-flag symptoms without confirmed clearance block program generation."""
+    if profile is None or profile.medical_clearance:
+        return False
+    return screen_profile_text(profile.injuries, profile.medical_conditions).severity == SafetySeverity.CRITICAL
+
+
+def has_eating_disorder_history(profile: UserProfile | None) -> bool:
+    if profile is None:
+        return False
+    screen = screen_profile_text(profile.injuries, profile.medical_conditions)
+    return screen.is_flagged and screen.category == SafetyCategory.EATING_DISORDER
+
+
 class SafetyService:
     def __init__(self, db: Session, llm: StructuredLLM | None = None) -> None:
         self.db = db
@@ -217,6 +327,14 @@ class SafetyService:
             recommended_action=SafetyAction.LOGGED if result.recommended_action == "logged" else SafetyAction.CAUTIONED,
             rationale=result.rationale,
         )
+
+    def screen_profile(self, profile: UserProfile) -> SafetyAssessment:
+        """Evaluate the injuries/medical conditions given at onboarding (rules only, no LLM)."""
+        return self.screen_profile_static(profile)
+
+    @staticmethod
+    def screen_profile_static(profile: UserProfile) -> SafetyAssessment:
+        return screen_profile_text(profile.injuries, profile.medical_conditions, profile.medical_clearance)
 
     def screen_output(self, text: str) -> SafetyAssessment:
         """Check an agent reply for unsafe advice before it reaches the user."""

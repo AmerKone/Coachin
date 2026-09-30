@@ -8,7 +8,12 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from app.api.deps import CurrentUser, DbSession
 from app.models import ProgramWorkout, TrainingProgram
 from app.schemas import ProgramGenerateRequest, ProgramRead, ProgramSummary, ProgramUpdate, ProgramWorkoutRead
-from app.services.program_service import ProfileRequiredError, ProgramGenerationError, ProgramService
+from app.services.program_service import (
+    ClearanceRequiredError,
+    ProfileRequiredError,
+    ProgramGenerationError,
+    ProgramService,
+)
 
 router = APIRouter(prefix="/programs", tags=["programs"])
 
@@ -36,6 +41,12 @@ def generate_program(payload: ProgramGenerateRequest, user: CurrentUser, program
     """
     try:
         return programs.generate(user, payload)
+    except ClearanceRequiredError:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Your profile mentions symptoms that need a doctor's check first. Once a doctor has "
+                   "cleared you, tick 'A doctor has cleared me for exercise' on your profile.",
+        ) from None
     except ProfileRequiredError:
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT, detail="Complete your profile before generating a program"

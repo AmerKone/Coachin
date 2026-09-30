@@ -5,6 +5,7 @@ from typing import Annotated, ClassVar
 from pydantic import AfterValidator, EmailStr, Field, PastDate, model_validator
 
 from app.models.enums import Equipment, FitnessGoal, FitnessLevel, Sex
+from app.schemas.chat import SafetyNotice
 from app.schemas.common import CoachinSchema, TimestampedReadSchema
 from app.services.security import BCRYPT_MAX_PASSWORD_BYTES
 
@@ -125,4 +126,5 @@ class UserProfileUpdate(CoachinSchema):
 
 
 class UserProfileRead(TimestampedReadSchema, UserProfileBase):
-    pass
+    safety_notice: SafetyNotice | None = None
+    """Set when the health answers call for caution or medical clearance."""

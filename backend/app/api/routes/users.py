@@ -4,7 +4,15 @@ from fastapi import APIRouter, HTTPException, status
 
 from app.api.deps import CurrentUser, DbSession
 from app.models import User, UserProfile
-from app.schemas import UserProfileCreate, UserProfileRead, UserProfileUpdate, UserRead, UserUpdate
+from app.schemas import (
+    SafetyNotice,
+    UserProfileCreate,
+    UserProfileRead,
+    UserProfileUpdate,
+    UserRead,
+    UserUpdate,
+)
+from app.services.safety_service import SafetyService
 from app.services.security import hash_password
 
 router = APIRouter(prefix="/users/me", tags=["users"])
@@ -41,40 +49,67 @@ def delete_me(user: CurrentUser, db: DbSession) -> None:
 
 
 @router.get("/profile", response_model=UserProfileRead)
-def read_profile(user: CurrentUser) -> UserProfile:
-    """Return the fitness profile. 404 if onboarding not completed."""
+def read_profile(user: CurrentUser) -> UserProfileRead:
+    """Return the fitness profile (with any standing safety notice). 404 if onboarding not completed."""
     if user.profile is None:
         raise PROFILE_NOT_FOUND
-    return user.profile
+    response = UserProfileRead.model_validate(user.profile)
+    assessment = SafetyService.screen_profile_static(user.profile)
+    if assessment.is_flagged:
+        response.safety_notice = SafetyNotice(
+            category=assessment.category, severity=assessment.severity,
+            action_taken=assessment.recommended_action, message=assessment.user_facing_message or "")
+    return response
 
 
 @router.put("/profile", response_model=UserProfileRead)
 def create_or_replace_profile(
     payload: UserProfileCreate, user: CurrentUser, db: DbSession
-) -> UserProfile:
+) -> UserProfileRead:
     """Create the profile during onboarding (or fully replace it).
 
-    Fields omitted from the payload are reset to their defaults.
+    Fields omitted from the payload are reset to their defaults. Health answers are screened;
+    the response carries a `safety_notice` when they call for caution or medical clearance.
     """
-    # TODO: run SafetyService.screen_profile over injuries/medical_conditions once implemented.
+    before = _health_text(user.profile)
     data = payload.model_dump()
     if user.profile is None:
         user.profile = UserProfile(**data)
     else:
         for field, value in data.items():
             setattr(user.profile, field, value)
-    db.commit()
-    db.refresh(user.profile)
-    return user.profile
+    return _save_and_screen(user, db, before)
 
 
 @router.patch("/profile", response_model=UserProfileRead)
-def update_profile(payload: UserProfileUpdate, user: CurrentUser, db: DbSession) -> UserProfile:
+def update_profile(payload: UserProfileUpdate, user: CurrentUser, db: DbSession) -> UserProfileRead:
     """Partially update the profile."""
     if user.profile is None:
         raise PROFILE_NOT_FOUND
+    before = _health_text(user.profile)
     for field, value in payload.model_dump(exclude_unset=True).items():
         setattr(user.profile, field, value)
+    return _save_and_screen(user, db, before)
+
+
+def _health_text(profile: UserProfile | None) -> tuple:
+    if profile is None:
+        return (None, None, None)
+    return (profile.injuries, profile.medical_conditions, profile.medical_clearance)
+
+
+def _save_and_screen(user: User, db: DbSession, before: tuple) -> UserProfileRead:
+    """Commit the profile, screen its health answers, and log a SafetyEvent if they changed."""
+    safety = SafetyService(db)
+    assessment = safety.screen_profile(user.profile)
+    if assessment.is_flagged and _health_text(user.profile) != before:
+        safety.record_event(user.id, assessment, " | ".join(
+            filter(None, [user.profile.injuries, user.profile.medical_conditions])))
     db.commit()
     db.refresh(user.profile)
-    return user.profile
+    response = UserProfileRead.model_validate(user.profile)
+    if assessment.is_flagged:
+        response.safety_notice = SafetyNotice(
+            category=assessment.category, severity=assessment.severity,
+            action_taken=assessment.recommended_action, message=assessment.user_facing_message or "")
+    return response

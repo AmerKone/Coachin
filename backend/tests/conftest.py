@@ -1,16 +1,34 @@
 """Shared pytest fixtures.
 
-Database tests run against `TEST_DATABASE_URL` if set, otherwise the `DATABASE_URL` from
-`.env`. Every test runs inside a transaction that is rolled back afterwards, so no rows
-are left behind. Tests needing the database are skipped if it is unreachable.
+Database tests run against `TEST_DATABASE_URL` (from the environment or the project's `.env`)
+if set, otherwise the `DATABASE_URL` from `.env`. Every test runs inside a transaction that is
+rolled back afterwards, so no rows are left behind. Tests needing the database are skipped if
+it is unreachable.
 """
 
 import os
 from collections.abc import Iterator
+from pathlib import Path
+
+from dotenv import dotenv_values
+
+PROJECT_ROOT = Path(__file__).resolve().parents[2]
+
+
+def _test_database_url() -> str | None:
+    """TEST_DATABASE_URL from the environment, else from backend/.env or the project .env."""
+    if url := os.environ.get("TEST_DATABASE_URL"):
+        return url
+    for env_file in (PROJECT_ROOT / "backend" / ".env", PROJECT_ROOT / ".env"):
+        if env_file.is_file() and (url := dotenv_values(env_file).get("TEST_DATABASE_URL")):
+            return url
+    return None
+
 
 # Must be set before `app` is imported: settings are read once and cached.
-if test_db := os.environ.get("TEST_DATABASE_URL"):
-    os.environ["DATABASE_URL"] = test_db
+TEST_DATABASE_URL = _test_database_url()
+if TEST_DATABASE_URL:
+    os.environ["DATABASE_URL"] = TEST_DATABASE_URL
 os.environ.setdefault("JWT_SECRET_KEY", "test-secret-key-that-is-at-least-32-bytes-long")
 os.environ["OPENAI_API_KEY"] = "test-openai-key"      # tests must never call real APIs
 os.environ["PINECONE_API_KEY"] = "test-pinecone-key"
@@ -22,11 +40,26 @@ from sqlalchemy.exc import OperationalError  # noqa: E402
 from sqlalchemy.orm import Session  # noqa: E402
 
 
+@pytest.fixture(autouse=True)
+def reset_login_limits() -> Iterator[None]:
+    """Login rate limits are process-wide; start every test with a clean slate."""
+    from app.services.rate_limit import login_failures_by_account, login_failures_by_ip
+
+    login_failures_by_account.clear()
+    login_failures_by_ip.clear()
+    yield
+
+
 @pytest.fixture(scope="session")
 def engine() -> Engine:
+    from sqlalchemy.engine import make_url
+
     from app.database import engine
     from app.models import Base
 
+    if TEST_DATABASE_URL and engine.url.database != make_url(TEST_DATABASE_URL).database:
+        pytest.exit(f"Refusing to run: TEST_DATABASE_URL is set but tests are connected to "
+                    f"{engine.url.database!r}.", returncode=1)
     try:
         with engine.connect():
             pass

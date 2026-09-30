@@ -33,10 +33,15 @@ from app.schemas import ProgramGenerateRequest, ProgramUpdate
 from app.services import llm_client
 from app.services.exercise_service import search_exercises
 from app.services.llm_client import LLMError, StructuredLLM
+from app.services.safety_service import blocks_program_generation, needs_clearance
 
 MAX_PLAN_ATTEMPTS = 2
 MAX_EXERCISES_PER_WORKOUT = 12
 DAY_NAMES = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]
+
+
+class ClearanceRequiredError(Exception):
+    """The profile reports current red-flag symptoms and no doctor clearance."""
 
 
 class ProfileRequiredError(Exception):
@@ -133,7 +138,7 @@ def week_prescription(
 
 
 def rpe_cap_for(profile: UserProfile) -> float:
-    if profile.medical_conditions and not profile.medical_clearance:
+    if needs_clearance(profile) or (profile.medical_conditions and not profile.medical_clearance):
         return 7.0
     return 8.0 if profile.fitness_level == FitnessLevel.BEGINNER else 9.0
 
@@ -215,6 +220,8 @@ class ProgramService:
         profile = user.profile
         if profile is None:
             raise ProfileRequiredError
+        if blocks_program_generation(profile):
+            raise ClearanceRequiredError
         today = today or date.today()
         goal = request.goal or profile.primary_goal
         days_per_week = request.training_days_per_week or profile.training_days_per_week
