@@ -1,0 +1,7 @@
+# Public entry point: automatic HTTPS (Let's Encrypt) for $DOMAIN, proxied to Streamlit.
+# HTTPS is required for the browser microphone (voice coach). Streamlit's websockets are
+# proxied automatically.
+{$DOMAIN} {
+    encode gzip
+    reverse_proxy frontend:8501
+}
